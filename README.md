@@ -1,3 +1,7 @@
+# First Change
+
+Hello Gitlab
+
 # Git repo instructions
 
 In the following folder structure, you can see 
