@@ -19,8 +19,8 @@ int searchSmallestMissingRecursion(int* A, int left, int right){
 
 int searchSmallestMissing(int* A, int left, int right){
     int n = right + 1;
-    int result = searchSmallestMissingRecursion(arr, left , right);
-    if (result > arr[n - 1]) {
+    int result = searchSmallestMissingRecursion(A, left , right);
+    if (result > A[n - 1]) {
         return NO_VALUE_MISSING;
     }
     else return result;
