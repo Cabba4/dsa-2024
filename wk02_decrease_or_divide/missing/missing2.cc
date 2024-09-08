@@ -2,19 +2,26 @@
 #include <iostream>
 #include "test.hh"
 
-int searchSmallestMissing(int* A, int left, int right){
+int searchSmallestMissingRecursion(int* A, int left, int right){
     //TODO: your code here
     //return missing value OR
     //return NO_VALUE_MISSING if no value is missing
-    if (left > right) return NO_VALUE_MISSING;
+    if (left > right) return arr[0] + left;
 
     int mid = (left + right)/2;
-    if (A[mid] != A[0] + mid){
-        return A[0] + mid;
+    if (A[mid] == A[0] + mid){
+        return searchSmallestMissing(A, mid + 1, right);
     }
-    int result = searchSmallestMissing(A, mid +1, right);
-    if (result == -1) {
-        result = searchSmallestMissing(A, left, mid -1);
+    else {
+        return searchSmallestMissing(A, left, mid - 1);
     }
-    return result;
+}
+
+int searchSmallestMissing(int* A, int left, int right){
+    int n = right + 1;
+    int result = searchSmallestMissingRecursion(arr, left , right);
+    if (result > arr[n - 1]) {
+        return NO_VALUE_MISSING;
+    }
+    else return result;
 }
