@@ -9,11 +9,12 @@ int searchSmallestMissing(int* A, int left, int right){
     if (left > right) return NO_VALUE_MISSING;
 
     int mid = (left + right)/2;
-    if (A[mid] == A[0] + mid){
-        return searchSmallestMissing(A, mid + 1, right);
+    if (A[mid] != A[0] + mid){
+        return A[0] + mid;
     }
-    else {
-        return searchSmallestMissing(A, left, mid - 1);
+    int result = searchSmallestMissing(A, mid +1, right);
+    if (result == -1) {
+        result = searchSmallestMissing(A, left, mid -1);
     }
-    return NO_VALUE_MISSING;
+    return result;
 }
