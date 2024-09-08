@@ -7,19 +7,11 @@ int searchSmallestMissingIteration(int* arr, int size){
     //return missing value OR
     //return NO_VALUE_MISSING if no value is missing
     if (size == 0) return NO_VALUE_MISSING;
-    
-    for(int i=0; i< size; i++) {
+
+    for(int i=0; i< size - 1; i++) {
         if( arr[i+1] - arr[i] > 1 ) {
             return arr[i] + 1;
         } 
     }
     return NO_VALUE_MISSING;
-}
-
-
-int main() {
-    int arr[] = {8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
-    int size = sizeof(arr);
-    int result = searchSmallestMissingIteration(arr, size);
-    std::cout<<result;
 }
