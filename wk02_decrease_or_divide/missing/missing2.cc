@@ -6,7 +6,7 @@ int searchSmallestMissingRecursion(int* A, int left, int right){
     //TODO: your code here
     //return missing value OR
     //return NO_VALUE_MISSING if no value is missing
-    if (left > right) return arr[0] + left;
+    if (left > right) return A[0] + left;
 
     int mid = (left + right)/2;
     if (A[mid] == A[0] + mid){
