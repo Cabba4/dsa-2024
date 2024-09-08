@@ -10,10 +10,10 @@ int searchSmallestMissingRecursion(int* A, int left, int right){
 
     int mid = (left + right)/2;
     if (A[mid] == A[0] + mid){
-        return searchSmallestMissing(A, mid + 1, right);
+        return searchSmallestMissingRecursion(A, mid + 1, right);
     }
     else {
-        return searchSmallestMissing(A, left, mid - 1);
+        return searchSmallestMissingRecursion(A, left, mid - 1);
     }
 }
 
