@@ -15,4 +15,11 @@ using namespace std;
 void printHalf(const list<int>& lst)
 {
     // ADD YOUR CODE HERE
+    auto it = lst.begin();
+    auto mid = next(lst.begin(), lst.size() / 2);
+    while(it != mid) {
+        std::cout<<*it<<" ";
+        ++it;
+    }
+    std::cout<<endl;
 }

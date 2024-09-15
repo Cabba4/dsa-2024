@@ -15,4 +15,11 @@ using namespace std;
 void printEverySecond(const list<int>& lst)
 {
     // ADD YOUR CODE HERE
+
+    auto it = lst.begin();
+    while(it != lst.end()) {
+        std::cout<<*it<<" ";
+        std::advance(it, 2);
+    }
+    std::cout<<endl;
 }

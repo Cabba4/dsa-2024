@@ -15,3 +15,10 @@ int searchSmallestMissingIteration(int* arr, int size){
     }
     return NO_VALUE_MISSING;
 }
+
+int main() {
+    int arr[] = {1,2,3,4,6,7,8,9};
+    int size = sizeof(arr)/sizeof(arr[0]);
+    int result = searchSmallestMissingIteration(arr, size);
+    std::cout<<"Result is: "<<result; 
+}

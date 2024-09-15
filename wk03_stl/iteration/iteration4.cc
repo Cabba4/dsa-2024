@@ -15,4 +15,10 @@ using namespace std;
 void printReverse(const list<int>& lst)
 {
     // ADD YOUR CODE HERE
+    auto it = lst.rbegin();
+    while(it != lst.rend()){
+        std::cout<<*it<<" ";
+        ++it;
+    }
+    std::cout<<endl;
 }
