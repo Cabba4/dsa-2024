@@ -17,5 +17,11 @@ using namespace std;
  */
 int findAtLeastGiven(std::map<std::string, int>& m, int given)
 {
+    for(const auto& pair : m) {
+        if(pair.second >= given) {
+            return pair.second;
+        }
+    }
+    return NOT_FOUND;
 }
 
