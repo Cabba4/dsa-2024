@@ -16,5 +16,11 @@ using namespace std;
  */
 std::vector<int>::iterator findGivenValue(std::vector<int>& v, int given)
 {
+    try {
+        auto found = find(v.begin(), v.end(), given);
+        return found;
+    } catch(exception E) {
+        return v.end();
+    }
 }
 
