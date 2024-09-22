@@ -4,6 +4,7 @@
 #define DATASTRUCTURES_HH
 
 #include "customtypes.hh"
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -117,6 +118,13 @@ public:
 
 private:
   // Add stuff needed for your class implementation here
+    struct Bite {
+        BiteID id;
+        Name name;
+        Coord xy;
+    };
+    std::unordered_map<BiteID, Bite> id_map;
+    std::unordered_map<Coord, Bite> coord_map;
 };
 
 #endif // DATASTRUCTURES_HH

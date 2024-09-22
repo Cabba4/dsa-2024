@@ -21,38 +21,87 @@ Datastructures::~Datastructures()
 
 unsigned int Datastructures::get_bite_count()
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("get_bite_count");
+    return id_map.size();
 }
+
+/*
+Clears the data structures (all bites, contours, etc.).
+For example, the all_bites and all_contours functions should return an empty vector after this command.
+*/
 
 void Datastructures::clear_all()
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("clear_all");
+    id_map.clear();
+    coord_map.clear();
 }
+
+/*
+Returns all bites in the data structure. The order of the returned bites does not matter; the main program will sort them by id before printing.
+*/
 
 std::vector<BiteID> Datastructures::all_bites()
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("all_bites");
+    std::vector<BiteID> bite_ids;
+    bite_ids.reserve(id_map.size());
+    for(const auto& pair : id_map) {
+        bite_ids.push_back(pair.first);
+    }
+    return bite_ids;
 }
 
-bool Datastructures::add_bite(BiteID /*id*/, const Name & /*name*/, Coord /*xy*/)
+/*
+Adds a new bite to the data structure with the given id, name, and location, and returns true. Adding fails and false is returned if:
+
+    a bite with the given id already exists in the data structure
+    a bite already exists at the given coordinate
+*/
+
+bool Datastructures::add_bite(BiteID id, const Name & name, Coord xy)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("add_bite");
+    if (id_map.find(id) != id_map.end()){
+        return false;
+    }
+    if (coord_map.find(xy) != coord_map.end()) {
+        return false;
+    }
+
+    Bite new_bite{id, name, xy};
+    id_map[id] = new_bite;
+    coord_map[xy] = new_bite;
+
+    return true;
 }
 
-Name Datastructures::get_bite_name(BiteID /*id*/)
+/*
+Returns the name of the bite.
+
+    If no bite is found with the given id, the constant NO_NAME (defined in the customtypes.hh file) is returned.
+*/
+
+Name Datastructures::get_bite_name(BiteID id)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("get_bite_name");
+    auto it = id_map.find(id);
+    if (it != id_map.end()) {
+        return it->second.name;
+    } else {
+        return NO_NAME;
+    }
 }
 
-Coord Datastructures::get_bite_coord(BiteID /*id*/)
+/*
+Returns the coordinates of the bite.
+
+    If no bite is found with the given id, the constant NO_COORD (defined in the customtypes.hh file) is returned.
+*/
+
+Coord Datastructures::get_bite_coord(BiteID id)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("get_bite_coord");
+    auto it = id_map.find(id);
+    if (it != id_map.end()) {
+        return it->second.xy;
+    } else {
+        return NO_COORD;
+    }
 }
 
 std::vector<BiteID> Datastructures::get_bites_alphabetically()
