@@ -1,5 +1,6 @@
 #include <iterator>
 #include <vector>
+#include <iostream>
 #include <algorithm>
 
 using namespace std;
@@ -11,9 +12,11 @@ using namespace std;
  * @param vec vector where every second item is erased.
  */
 void eraseEverySecond(std::vector<int>& vec) {
-    auto beg = vec.begin();
-    auto end = vec.end();
-    for (auto i = beg; i != end; i = i+2)
-    { vec.erase(i); }
+    for (auto i = vec.begin() + 1; i != vec.end(); ) {
+        i = vec.erase(i); // Erase the current element and get the next iterator
+        if (i != vec.end()) {
+            ++i; // Move to the next element
+        }
+    }
 }
 
