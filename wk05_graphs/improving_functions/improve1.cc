@@ -13,8 +13,8 @@
  */
 std::vector<int> ascendingVector(int n){
     std::vector<int> v(n);
-    for (int i = 0; i < n; ++i) {
-        v[i] = i;  // Assign values directly
+    for ( int i = 0; i < n ; i++){
+        v[i] = i;
     }
     return v;
 }
