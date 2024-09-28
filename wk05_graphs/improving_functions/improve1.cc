@@ -1,6 +1,8 @@
 #include <iterator>
 #include <vector>
 #include <algorithm>
+#include <iostream>
+#include <numeric>
 
 
 /**
@@ -10,9 +12,9 @@
  * @return std::vector<int>
  */
 std::vector<int> ascendingVector(int n){
-    std::vector<int> v;
-    for ( int i = 0; i < n ; i++){
-        v.insert(v.end(), i);
+    std::vector<int> v(n);
+    for (int i = 0; i < n; ++i) {
+        v[i] = i;  // Assign values directly
     }
     return v;
 }
