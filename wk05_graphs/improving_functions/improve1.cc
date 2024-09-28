@@ -11,9 +11,8 @@
  */
 std::vector<int> ascendingVector(int n){
     std::vector<int> v;
-    v.reserve(n);
     for ( int i = 0; i < n ; i++){
-        v.push_back(i);
+        v[i] = i;
     }
     return v;
 }
