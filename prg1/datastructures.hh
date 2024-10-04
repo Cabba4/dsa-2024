@@ -122,9 +122,23 @@ private:
         BiteID id;
         Name name;
         Coord xy;
+        ContourID contour_id = NO_CONTOUR;
     };
     std::unordered_map<BiteID, Bite> id_map;
     std::unordered_map<Coord, Bite> coord_map;
+
+    struct Contour {
+        ContourID id;
+        Name name;
+        ContourHeight height;
+        std::vector<Coord> xy;
+        ContourID parent_contour = NO_CONTOUR; // Optional parent contour ID (null if no parent)
+        std::vector<ContourID> subcontours;
+        std::vector<BiteID> bites;
+    };
+    std::unordered_map<ContourID, Contour> contour_map;
 };
+
+
 
 #endif // DATASTRUCTURES_HH
