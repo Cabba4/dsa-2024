@@ -8,6 +8,7 @@
 
 #include "datastructures.hh"
 #include "customtypes.hh"
+#include <algorithm>
 
 Datastructures::Datastructures()
 {
@@ -104,29 +105,127 @@ Coord Datastructures::get_bite_coord(BiteID id)
     }
 }
 
+/*
+Returns a vector of BiteIDs sorted alphabetically by name.
+
+    Bites with the same name are sorted by their BiteIDs.
+*/
+
 std::vector<BiteID> Datastructures::get_bites_alphabetically()
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("get_bites_alphabetically");
+    std::vector<BiteID> bite_ids;
+
+    // Add all bite IDs to the vector
+    for (const auto& bite : id_map) {
+        bite_ids.push_back(bite.first);
+    }
+
+    // Sort the vector by name (which can contain emojis or other characters), and in case of tie, by BiteID
+    std::sort(bite_ids.begin(), bite_ids.end(), [this](BiteID id1, BiteID id2) {
+        const Name& name1 = id_map.at(id1).name;
+        const Name& name2 = id_map.at(id2).name;
+
+        // Use string comparison for sorting names (handles Unicode characters like emojis)
+        if (name1 != name2) {
+            return name1 < name2; // Unicode-based string comparison
+        }
+        // If names are the same, sort by BiteID
+        return id1 < id2;
+    });
+
+    return bite_ids;
 }
+
+// Returns a vector of BiteIDs sorted by increasing Manhattan distance from the origin.
+// If distances are equal, bites with smaller y-coordinates are sorted first.
+// Bites with the same distance and y-coordinate are sorted by their BiteIDs.
 
 std::vector<BiteID> Datastructures::get_bites_distance_increasing()
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("get_bites_distance_increasing");
+    std::vector<BiteID> bite_ids;
+
+    // Fill the vector with all BiteIDs from id_map
+    for (const auto& entry : id_map) {
+        bite_ids.push_back(entry.first);
+    }
+
+    // Sort the bites by Manhattan distance from origin (0, 0)
+    std::sort(bite_ids.begin(), bite_ids.end(), [this](BiteID id1, BiteID id2) {
+        Coord c1 = id_map[id1].xy;
+        Coord c2 = id_map[id2].xy;
+
+        // Calculate Manhattan distances from the origin
+        int dist1 = std::abs(c1.x) + std::abs(c1.y);
+        int dist2 = std::abs(c2.x) + std::abs(c2.y);
+
+        // Compare Manhattan distances
+        if (dist1 != dist2) {
+            return dist1 < dist2;
+        }
+
+        // If distances are equal, compare y-coordinates
+        if (c1.y != c2.y) {
+            return c1.y < c2.y;
+        }
+
+        // If y-coordinates are equal, compare BiteIDs
+        return id1 < id2;
+    });
+
+    return bite_ids;
 }
 
-BiteID Datastructures::find_bite_with_coord(Coord /*xy*/)
+
+/*
+Returns the BiteID at the given coordinates.
+
+    If no bite exists at the coordinates, NO_BITE is returned.
+*/
+
+BiteID Datastructures::find_bite_with_coord(Coord xy)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("find_bite_with_coord");
+    // Look for the coordinate in the coord_map
+    auto it = coord_map.find(xy);
+
+    // If the coordinate is found, return the corresponding BiteID
+    if (it != coord_map.end()) {
+        return it->second.id;
+    } else {
+        // If not found, return NO_BITE
+        return NO_BITE;
+    }
 }
 
-bool Datastructures::change_bite_coord(BiteID /*id*/, Coord /*newcoord*/)
+// Changes the coordinate of the bite with the given BiteID.
+// Returns true if the coordinate is successfully changed.
+// Returns false if:
+// - No bite is found with the given id,
+// - The new coordinate already contains a bite,
+// - The new coordinate is invalid for the contour (if applicable).
+
+bool Datastructures::change_bite_coord(BiteID id, Coord newcoord)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("change_bite_coord");
+    auto bite_it = id_map.find(id);
+    if (bite_it == id_map.end()) {
+        return false;
+    }
+
+    if (coord_map.find(newcoord) != coord_map.end()) {
+        return false;
+    }
+
+    // (Optional) Check if the new coordinate is valid for the contour
+    // Add logic here if needed.
+
+    Coord oldcoord = bite_it->second.xy;
+    coord_map.erase(oldcoord);
+    coord_map[newcoord].id = id;
+    bite_it->second.xy = newcoord;
+
+    return true;
 }
+
+
 
 bool Datastructures::add_contour(ContourID /*id*/, const Name & /*name*/, ContourHeight /*height*/,
                                  std::vector<Coord> /*coords*/)
