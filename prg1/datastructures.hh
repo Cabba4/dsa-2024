@@ -5,7 +5,6 @@
 
 #include "customtypes.hh"
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 // Add your own STL includes below this comment
@@ -21,25 +20,25 @@ public:
   Datastructures();
   ~Datastructures();
 
-  // Estimate of performance:
-  // Short rationale for estimate:
+  // Estimate of performance: O(1)
+  // Short rationale for estimate: The function simply returns the size of the `id_map`, which is a constant-time operation.
   unsigned int get_bite_count();
 
-  // Estimate of performance:
-  // Short rationale for estimate:
+  // Estimate of performance: O(n)
+  // Short rationale for estimate: Each call to `clear()` on an unordered_map takes linear time relative to the number of elements in the map. Since there are three maps, each of size n (assuming n is the largest map size), the overall complexity is O(n).
   void clear_all();
 
-  // Estimate of performance:
-  // Short rationale for estimate:
+  // Estimate of performance: O(n)
+  // Short rationale for estimate: The function iterates over all elements in `id_map` (which has n elements), and appends each key (BiteID) to a vector. This results in linear time complexity.
   std::vector<BiteID> all_bites();
 
-  // Estimate of performance:
-  // Short rationale for estimate:
-  bool add_bite(BiteID /*id*/, const Name & /*name*/, Coord /*xy*/);
+  // Estimate of performance: O(log(n))
+  // Short rationale for estimate: Both `id_map.find()` and `coord_map.find()` are lookup operations in an unordered_map, which typically take O(1) on average, but in the worst case (due to hash collisions), they can take O(log(n)). The insertions are also O(1) on average.
+  bool add_bite(BiteID id, const Name & name, Coord xy);
 
-  // Estimate of performance:
-  // Short rationale for estimate:
-  Name get_bite_name(BiteID /*id*/);
+  // Estimate of performance: O(1)
+  // Short rationale for estimate: The `find()` operation in an unordered_map has an average time complexity of O(1). Retrieving the name from the iterator is also O(1).
+  Name get_bite_name(BiteID id);
 
   // Estimate of performance:
   // Short rationale for estimate:

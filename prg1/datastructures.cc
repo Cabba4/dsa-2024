@@ -9,7 +9,6 @@
 #include "datastructures.hh"
 #include "customtypes.hh"
 #include <algorithm>
-#include <iostream>
 
 Datastructures::Datastructures()
 {
