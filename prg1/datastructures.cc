@@ -10,6 +10,7 @@
 #include "customtypes.hh"
 #include <algorithm>
 #include <unordered_set>
+#include <functional>
 
 Datastructures::Datastructures()
 {
