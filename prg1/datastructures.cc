@@ -28,6 +28,7 @@ unsigned int Datastructures::get_bite_count()
 void Datastructures::clear_all() {
     id_map.clear();
     coord_map.clear();
+    contour_map.clear();
 
     invalidate_cache();
     all_bites_cache_valid = false;
