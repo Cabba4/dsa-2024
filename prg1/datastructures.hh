@@ -55,15 +55,15 @@ public:
   // Short rationale for estimate: The function iterates through the id_map to gather BiteIDs in O(n) time, followed by an O(n * log(n)) sort operation based on Manhattan distance and coordinates.
   std::vector<BiteID> get_bites_distance_increasing();
 
-  // Estimate of performance: O(1)
-  // Short rationale for estimate: The function uses unordered_map::find, which has an average time complexity of O(1) for lookups.
+  // Estimate of performance: O(n)
+  // Short rationale for estimate: The function uses unordered_map::find, which has an average time complexity of O(1) for lookups. But for worst case there may be collisions which can make it O(n).
   BiteID find_bite_with_coord(Coord xy);
 
   // Estimate of performance: O(n)
   // Short rationale for estimate: The most expensive part is checking if the new coordinate exists in the contour's coordinate list, which requires searching through the vector (contour.xy), making it O(n), where n is the size of the contour. All other operations such as map lookups and erasures are O(1).
   bool change_bite_coord(BiteID id, Coord newcoord);
 
-  // Estimate of performance: O(1)
+  // Estimate of performance: O(n)
   // Short rationale for estimate: The operations performed are map lookups and insertions, which are O(1) on average for `unordered_map`. All other checks, including bounds and emptiness, are constant-time operations
   bool add_contour(ContourID id, const Name & name, ContourHeight height,
                    std::vector<Coord> coords);
@@ -72,7 +72,7 @@ public:
   // Short rationale for estimate: The function iterates through all elements in the contour_map, which has n entries, and appends each ContourID to the vector, resulting in linear time complexity
   std::vector<ContourID> all_contours();
 
-  // Estimate of performance: O(1)
+  // Estimate of performance: O(n)
   // Short rationale for estimate: Accessing an element in an unordered_map by key is an average O(1) operation. The function performs a key lookup and returns a value, resulting in constant time complexity.
   Name get_contour_name(ContourID id);
 
@@ -84,7 +84,7 @@ public:
   // Short rationale for estimate: Accessing an element in an unordered_map by key is an average O(1) operation, and returning the height (a primitive type) is also O(1).
   ContourHeight get_contour_height(ContourID id);
 
-  // Estimate of performance: O(1)
+  // Estimate of performance: O(n)
   // Short rationale for estimate: The function performs a constant number of operations involving lookups and modifications on unordered_map and vector, making the overall time complexity O(1) on average.
   bool add_subcontour_to_contour(ContourID id, ContourID parentid);
 
