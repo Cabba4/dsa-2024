@@ -411,34 +411,44 @@ bool Datastructures::remove_bite(BiteID id)
 }
 
 ContourID Datastructures::get_closest_common_ancestor_of_contours(ContourID id1, ContourID id2) {
-    auto get_ancestor_path = [this](ContourID id) -> std::vector<ContourID> {
+    // Check if both contours exist
+    if (contour_map.find(id1) == contour_map.end() || contour_map.find(id2) == contour_map.end()) {
+        return NO_CONTOUR;
+    }
+
+    // Function to collect all ancestors of a given contour (excluding itself)
+    auto get_ancestors = [&](ContourID id) -> std::vector<ContourID> {
         std::vector<ContourID> ancestors;
-        while (id != NO_CONTOUR) {
-            ancestors.push_back(id);
-            auto contour_it = contour_map.find(id);
-            if (contour_it == contour_map.end()) {
-                break;
+        ContourID current_id = id;
+
+        while (current_id != NO_CONTOUR) {
+            auto it = contour_map.find(current_id);
+            if (it == contour_map.end()) {
+                break;  // Should not happen, but safety check
             }
-            id = contour_it->second.parent_contour;
+            current_id = it->second.parent_contour;
+            if (current_id != NO_CONTOUR) {
+                ancestors.push_back(current_id);
+            }
         }
         return ancestors;
     };
 
-    std::vector<ContourID> ancestors1 = get_ancestor_path(id1);
-    std::vector<ContourID> ancestors2 = get_ancestor_path(id2);
+    // Get the ancestors of both contours
+    std::vector<ContourID> ancestors1 = get_ancestors(id1);
+    std::vector<ContourID> ancestors2 = get_ancestors(id2);
 
-    if (ancestors1.empty() || ancestors2.empty()) {
-        return NO_CONTOUR;
-    }
-
+    // Create a set of ancestors from the first contour
     std::unordered_set<ContourID> ancestors_set(ancestors1.begin(), ancestors1.end());
 
-    for (const ContourID& ancestor : ancestors2) {
+    // Find the first common ancestor from the second contour's ancestors
+    for (const auto& ancestor : ancestors2) {
         if (ancestors_set.find(ancestor) != ancestors_set.end()) {
-            return ancestor;
+            return ancestor;  // Return the first common ancestor
         }
     }
 
-    return NO_CONTOUR;
+    return NO_CONTOUR;  // No common ancestor found
 }
+
 
