@@ -100,20 +100,20 @@ public:
 
   // Estimate of performance:
   // Short rationale for estimate:
-  std::vector<ContourID> all_subcontours_of_contour(ContourID /*id*/);
+  std::vector<ContourID> all_subcontours_of_contour(ContourID id);
 
   // Estimate of performance:
   // Short rationale for estimate:
-  std::vector<BiteID> get_bites_closest_to(Coord /*xy*/);
+  std::vector<BiteID> get_bites_closest_to(Coord xy);
 
   // Estimate of performance:
   // Short rationale for estimate:
-  bool remove_bite(BiteID /*id*/);
+  bool remove_bite(BiteID id);
 
   // Estimate of performance:
   // Short rationale for estimate:
-  ContourID get_closest_common_ancestor_of_contours(ContourID /*id1*/,
-                                                    ContourID /*id2*/);
+  ContourID get_closest_common_ancestor_of_contours(ContourID id1,
+                                                    ContourID id2);
 
 private:
   // Add stuff needed for your class implementation here

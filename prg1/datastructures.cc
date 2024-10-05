@@ -9,6 +9,7 @@
 #include "datastructures.hh"
 #include "customtypes.hh"
 #include <algorithm>
+#include <unordered_set>
 
 Datastructures::Datastructures()
 {
@@ -120,9 +121,6 @@ std::vector<BiteID> Datastructures::get_bites_alphabetically() {
 
     return cached_bite_ids_alphabetical;
 }
-
-
-
 
 std::vector<BiteID> Datastructures::get_bites_distance_increasing() {
     if (!sorted_by_distance) {
@@ -335,28 +333,111 @@ std::vector<ContourID> Datastructures::get_bite_in_contours(BiteID id) {
 
 // Not implemented yet
 
-std::vector<ContourID>
-Datastructures::all_subcontours_of_contour(ContourID /*id*/)
-{
-  throw NotImplemented("all_subcontours_of_contour");
+std::vector<ContourID> Datastructures::all_subcontours_of_contour(ContourID id) {
+    auto contour_it = contour_map.find(id);
+    if (contour_it == contour_map.end()) {
+        return {NO_CONTOUR};
+    }
+
+    std::vector<ContourID> subcontours;
+    std::function<void(ContourID)> collect_subcontours = [&](ContourID current_id) {
+        auto current_it = contour_map.find(current_id);
+        if (current_it != contour_map.end()) {
+            for (const ContourID& subcontour_id : current_it->second.subcontours) {
+                subcontours.push_back(subcontour_id);
+                collect_subcontours(subcontour_id);
+            }
+        }
+    };
+
+    collect_subcontours(id);
+
+    return subcontours;
 }
 
-ContourID
-Datastructures::get_closest_common_ancestor_of_contours(ContourID /*id1*/,
-                                                        ContourID /*id2*/)
+
+std::vector<BiteID> Datastructures::get_bites_closest_to(Coord xy)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("get_closest_common_ancestor_of_contours");
+    std::vector<std::pair<BiteID, int>> bite_distances;
+
+    for (const auto& entry : id_map) {
+        BiteID id = entry.first;
+        Coord bite_coord = entry.second.xy;
+
+        int distance = std::abs(bite_coord.x - xy.x) + std::abs(bite_coord.y - xy.y);
+
+        bite_distances.push_back({id, distance});
+    }
+
+    std::sort(bite_distances.begin(), bite_distances.end(),
+              [this](const std::pair<BiteID, int>& bite1, const std::pair<BiteID, int>& bite2) {
+                  if (bite1.second != bite2.second) {
+                      return bite1.second < bite2.second;
+                  }
+                  Coord coord1 = id_map[bite1.first].xy;
+                  Coord coord2 = id_map[bite2.first].xy;
+                  if (coord1.y != coord2.y) {
+                      return coord1.y < coord2.y;
+                  }
+                  return bite1.first < bite2.first;
+              }
+              );
+
+    std::vector<BiteID> closest_bites;
+    for (size_t i = 0; i < std::min(size_t(3), bite_distances.size()); ++i) {
+        closest_bites.push_back(bite_distances[i].first);
+    }
+
+    return closest_bites;
 }
 
-bool Datastructures::remove_bite(BiteID /*id*/)
+
+bool Datastructures::remove_bite(BiteID id)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("remove_bite");
+    auto it = id_map.find(id);
+    if (it == id_map.end()) {
+        return false;
+    }
+
+    Coord coord = it->second.xy;
+    coord_map.erase(coord);
+
+    id_map.erase(it);
+
+    invalidate_cache();
+
+    return true;
 }
 
-std::vector<BiteID> Datastructures::get_bites_closest_to(Coord /*xy*/)
-{
-  // Replace the line below with your implementation
-  throw NotImplemented("get_bites_closest_to");
+ContourID Datastructures::get_closest_common_ancestor_of_contours(ContourID id1, ContourID id2) {
+    auto get_ancestor_path = [this](ContourID id) -> std::vector<ContourID> {
+        std::vector<ContourID> ancestors;
+        while (id != NO_CONTOUR) {
+            ancestors.push_back(id);
+            auto contour_it = contour_map.find(id);
+            if (contour_it == contour_map.end()) {
+                break;
+            }
+            id = contour_it->second.parent_contour;
+        }
+        return ancestors;
+    };
+
+    std::vector<ContourID> ancestors1 = get_ancestor_path(id1);
+    std::vector<ContourID> ancestors2 = get_ancestor_path(id2);
+
+    if (ancestors1.empty() || ancestors2.empty()) {
+        return NO_CONTOUR;
+    }
+
+    std::unordered_set<ContourID> ancestors_set(ancestors1.begin(), ancestors1.end());
+
+    for (const ContourID& ancestor : ancestors2) {
+        if (ancestors_set.find(ancestor) != ancestors_set.end()) {
+            return ancestor;
+        }
+    }
+
+    return NO_CONTOUR;
 }
+
