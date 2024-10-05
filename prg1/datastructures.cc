@@ -80,53 +80,63 @@ Coord Datastructures::get_bite_coord(BiteID id)
 
 std::vector<BiteID> Datastructures::get_bites_alphabetically()
 {
-    std::vector<BiteID> bite_ids;
+    std::vector<std::pair<BiteID, Name>> bite_data;
+    bite_data.reserve(id_map.size());
 
     for (const auto& bite : id_map) {
-        bite_ids.push_back(bite.first);
+        bite_data.emplace_back(bite.first, bite.second.name);
     }
 
-    std::sort(bite_ids.begin(), bite_ids.end(), [this](BiteID id1, BiteID id2) {
-        const Name& name1 = id_map.at(id1).name;
-        const Name& name2 = id_map.at(id2).name;
-
-        if (name1 != name2) {
-            return name1 < name2;
+    std::sort(bite_data.begin(), bite_data.end(), [](const auto& a, const auto& b) {
+        if (a.second != b.second) {
+            return a.second < b.second;
         }
-        return id1 < id2;
+        return a.first < b.first;
     });
+
+    std::vector<BiteID> bite_ids;
+    bite_ids.reserve(bite_data.size());
+    for (const auto& pair : bite_data) {
+        bite_ids.push_back(pair.first);
+    }
 
     return bite_ids;
 }
+
 
 std::vector<BiteID> Datastructures::get_bites_distance_increasing()
 {
-    std::vector<BiteID> bite_ids;
+    std::vector<std::tuple<BiteID, int, Coord>> bite_data;
+    bite_data.reserve(id_map.size());
 
     for (const auto& entry : id_map) {
-        bite_ids.push_back(entry.first);
+        Coord c = entry.second.xy;
+        int distance = std::abs(c.x) + std::abs(c.y);
+        bite_data.emplace_back(entry.first, distance, c);
     }
 
-    std::sort(bite_ids.begin(), bite_ids.end(), [this](BiteID id1, BiteID id2) {
-        Coord c1 = id_map[id1].xy;
-        Coord c2 = id_map[id2].xy;
-
-        int dist1 = std::abs(c1.x) + std::abs(c1.y);
-        int dist2 = std::abs(c2.x) + std::abs(c2.y);
-
-        if (dist1 != dist2) {
-            return dist1 < dist2;
+    std::sort(bite_data.begin(), bite_data.end(), [](const auto& a, const auto& b) {
+        if (std::get<1>(a) != std::get<1>(b)) {
+            return std::get<1>(a) < std::get<1>(b);
         }
 
+        const Coord& c1 = std::get<2>(a);
+        const Coord& c2 = std::get<2>(b);
         if (c1.y != c2.y) {
             return c1.y < c2.y;
         }
-
-        return id1 < id2;
+        return std::get<0>(a) < std::get<0>(b);
     });
+
+    std::vector<BiteID> bite_ids;
+    bite_ids.reserve(bite_data.size());
+    for (const auto& tuple : bite_data) {
+        bite_ids.push_back(std::get<0>(tuple));
+    }
 
     return bite_ids;
 }
+
 
 BiteID Datastructures::find_bite_with_coord(Coord xy)
 {
