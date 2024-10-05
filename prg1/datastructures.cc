@@ -25,22 +25,37 @@ unsigned int Datastructures::get_bite_count()
     return id_map.size();
 }
 
-void Datastructures::clear_all()
-{
+void Datastructures::clear_all() {
     id_map.clear();
     coord_map.clear();
-    contour_map.clear();
+
+    invalidate_cache();
+    all_bites_cache_valid = false;
+
+    cached_bite_ids_alphabetical.clear();
+    cached_bite_ids_distance.clear();
+    sorted_alphabetically = false;
+    sorted_by_distance = false;
 }
 
-std::vector<BiteID> Datastructures::all_bites()
-{
-    std::vector<BiteID> bite_ids;
-    bite_ids.reserve(id_map.size());
-    for(const auto& pair : id_map) {
-        bite_ids.push_back(pair.first);
+std::vector<BiteID> Datastructures::all_bites() {
+    if (!all_bites_cache_valid) {
+        bite_ids_cache.clear();
+
+        if (id_map.empty()) {
+            all_bites_cache_valid = true;
+            return {};
+        }
+
+        bite_ids_cache.reserve(id_map.size());
+        for (const auto& pair : id_map) {
+            bite_ids_cache.push_back(pair.first);
+        }
+        all_bites_cache_valid = true;
     }
-    return bite_ids;
+    return bite_ids_cache;
 }
+
 
 bool Datastructures::add_bite(BiteID id, const Name & name, Coord xy)
 {
@@ -80,70 +95,66 @@ Coord Datastructures::get_bite_coord(BiteID id)
     }
 }
 
-std::vector<BiteID> Datastructures::get_bites_alphabetically()
-{
-    // Check if cache is valid
-    if (sorted_alphabetically) {
-        return cached_bite_ids_alphabetical;
-    }
+std::vector<BiteID> Datastructures::get_bites_alphabetically() {
+    if (!sorted_alphabetically) {
+        cached_bite_ids_alphabetical.clear();
+        cached_bite_ids_alphabetical.reserve(id_map.size());
 
-    // Recompute sorting if cache is not valid
-    cached_bite_ids_alphabetical.clear();
-    for (const auto& bite : id_map) {
-        cached_bite_ids_alphabetical.push_back(bite.first);
-    }
-
-    std::sort(cached_bite_ids_alphabetical.begin(), cached_bite_ids_alphabetical.end(), [this](BiteID id1, BiteID id2) {
-        const Name& name1 = id_map.at(id1).name;
-        const Name& name2 = id_map.at(id2).name;
-
-        if (name1 != name2) {
-            return name1 < name2;
+        for (const auto& pair : id_map) {
+            cached_bite_ids_alphabetical.push_back(pair.first);
         }
-        return id1 < id2;
-    });
 
-    sorted_alphabetically = true; // Mark the cache as valid
+        std::sort(cached_bite_ids_alphabetical.begin(), cached_bite_ids_alphabetical.end(), [this](BiteID id1, BiteID id2) {
+            const Name& name1 = id_map.at(id1).name;
+            const Name& name2 = id_map.at(id2).name;
+
+            if (name1 != name2) {
+                return name1 < name2;
+            }
+            return id1 < id2;
+        });
+
+        sorted_alphabetically = true;
+    }
+
     return cached_bite_ids_alphabetical;
 }
 
 
 
-std::vector<BiteID> Datastructures::get_bites_distance_increasing()
-{
-    // Check if cache is valid
-    if (sorted_by_distance) {
-        return cached_bite_ids_distance;
-    }
 
-    // Recompute sorting if cache is not valid
-    cached_bite_ids_distance.clear();
-    for (const auto& entry : id_map) {
-        cached_bite_ids_distance.push_back(entry.first);
-    }
+std::vector<BiteID> Datastructures::get_bites_distance_increasing() {
+    if (!sorted_by_distance) {
+        cached_bite_ids_distance.clear();
+        cached_bite_ids_distance.reserve(id_map.size());
 
-    std::sort(cached_bite_ids_distance.begin(), cached_bite_ids_distance.end(), [this](BiteID id1, BiteID id2) {
-        Coord c1 = id_map[id1].xy;
-        Coord c2 = id_map[id2].xy;
-
-        int dist1 = std::abs(c1.x) + std::abs(c1.y);
-        int dist2 = std::abs(c2.x) + std::abs(c2.y);
-
-        if (dist1 != dist2) {
-            return dist1 < dist2;
+        for (const auto& entry : id_map) {
+            cached_bite_ids_distance.push_back(entry.first);
         }
 
-        if (c1.y != c2.y) {
-            return c1.y < c2.y;
-        }
+        std::sort(cached_bite_ids_distance.begin(), cached_bite_ids_distance.end(), [this](BiteID id1, BiteID id2) {
+            const Coord& c1 = id_map.at(id1).xy;
+            const Coord& c2 = id_map.at(id2).xy;
 
-        return id1 < id2;
-    });
+            int dist1 = std::abs(c1.x) + std::abs(c1.y);
+            int dist2 = std::abs(c2.x) + std::abs(c2.y);
 
-    sorted_by_distance = true; // Mark the cache as valid
+            if (dist1 != dist2) {
+                return dist1 < dist2;
+            }
+
+            if (c1.y != c2.y) {
+                return c1.y < c2.y;
+            }
+
+            return id1 < id2;
+        });
+
+        sorted_by_distance = true;
+    }
+
     return cached_bite_ids_distance;
 }
-
 
 
 BiteID Datastructures::find_bite_with_coord(Coord xy)
