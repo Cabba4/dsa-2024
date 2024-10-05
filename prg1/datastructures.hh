@@ -126,6 +126,17 @@ private:
     std::unordered_map<BiteID, Bite> id_map;
     std::unordered_map<Coord, Bite> coord_map;
 
+    std::vector<BiteID> cached_bite_ids_alphabetical;
+    std::vector<BiteID> cached_bite_ids_distance;
+    bool sorted_alphabetically = false;
+    bool sorted_by_distance = false;
+
+    // Invalidate cache
+    void invalidate_cache() {
+        sorted_alphabetically = false;
+        sorted_by_distance = false;
+    }
+
     struct Contour {
         ContourID id;
         Name name;
