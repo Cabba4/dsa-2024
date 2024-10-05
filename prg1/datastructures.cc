@@ -150,8 +150,13 @@ bool Datastructures::change_bite_coord(BiteID id, Coord newcoord)
         return false;
     }
 
-    // (Optional) Check if the new coordinate is valid for the contour
-    // Add logic here if needed.
+    ContourID contour_id = bite_it->second.contour_id;
+    if (contour_id != NO_CONTOUR) {
+        const Contour& contour = contour_map.at(contour_id);
+        if (std::find(contour.xy.begin(), contour.xy.end(), newcoord) == contour.xy.end()) {
+            return false;
+        }
+    }
 
     Coord oldcoord = bite_it->second.xy;
     coord_map.erase(oldcoord);
@@ -246,7 +251,6 @@ bool Datastructures::add_subcontour_to_contour(ContourID id, ContourID parentid)
     return true;
 }
 
-
 bool Datastructures::add_bite_to_contour(BiteID biteid, ContourID contourid) {
 
     if (contour_map.find(contourid) == contour_map.end()) {
@@ -299,6 +303,7 @@ std::vector<ContourID> Datastructures::get_bite_in_contours(BiteID id) {
     return contour_ids;
 }
 
+// Not implemented yet
 
 std::vector<ContourID>
 Datastructures::all_subcontours_of_contour(ContourID /*id*/)
