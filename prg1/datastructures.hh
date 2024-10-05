@@ -76,7 +76,7 @@ public:
   // Short rationale for estimate: Accessing an element in an unordered_map by key is an average O(1) operation. The function performs a key lookup and returns a value, resulting in constant time complexity.
   Name get_contour_name(ContourID id);
 
-  // Estimate of performance: O(1)
+  // Estimate of performance: O(n)
   // Short rationale for estimate: Accessing an element in an unordered_map by key is an average O(1) operation. Returning the vector of coordinates (stored in the map) is also O(1) since it only involves returning a reference.
   std::vector<Coord> get_contour_coords(ContourID id);
 
