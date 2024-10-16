@@ -6,4 +6,9 @@ read "example-data/example_connections_100.txt" silent
 get_next_bites_from 24
 get_connections 11 12
 get_connection_coords 26 42
+clear_connections
+read "example-data/example_connections_100_path_any.txt" silent
+get_next_bites_from 24
+get_connections 11 12
+get_connection_coords 26 42
 path_any 1 50
