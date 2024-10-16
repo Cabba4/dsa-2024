@@ -84,7 +84,7 @@ Coord Datastructures::get_bite_coord(BiteID id)
     return NO_COORD;
 }
 
-
+// Optimising get bites function
 std::vector<BiteID> Datastructures::get_bites_alphabetically()
 {
     std::vector<std::pair<BiteID, std::string>> bites_sorted;
