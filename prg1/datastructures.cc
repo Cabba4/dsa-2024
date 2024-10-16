@@ -87,27 +87,27 @@ Coord Datastructures::get_bite_coord(BiteID id)
 
 std::vector<BiteID> Datastructures::get_bites_alphabetically()
 {
-    std::vector<BiteID> bites_sorted;
+    std::vector<std::pair<BiteID, std::string>> bites_sorted;
 
     for (const auto& pair : bites) {
-        bites_sorted.push_back(pair.first);
+        bites_sorted.push_back({pair.first, pair.second.name});
     }
 
-
     std::sort(bites_sorted.begin(), bites_sorted.end(), [&](auto left, auto right) {
-        const Bite& bite1 = bites.at(left);
-        const Bite& bite2 = bites.at(right);
-
-
-        if (bite1.name != bite2.name) {
-            return bite1.name < bite2.name;
+        if (left.second != right.second) {
+            return left.second < right.second;
         }
-
-
-        return bite1.id < bite2.id;
+        return left.first < right.first;
     });
-    return bites_sorted;
+
+    std::vector<BiteID> result;
+    for (const auto& pair : bites_sorted) {
+        result.push_back(pair.first);
+    }
+
+    return result;
 }
+
 
 
 std::vector<BiteID> Datastructures::get_bites_distance_increasing()
