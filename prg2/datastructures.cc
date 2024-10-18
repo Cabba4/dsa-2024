@@ -16,8 +16,8 @@
 
 #include "datastructures.hh"
 #include "customtypes.hh"
-#include "qdebug.h"
 #include <algorithm>
+#include <QDebug>
 #include <unordered_set>
 #include <functional>
 #include <queue>
@@ -497,8 +497,7 @@ ContourID Datastructures::get_closest_common_ancestor_of_contours(ContourID id1,
  * ============================
  */
 
-bool Datastructures::add_connection(ConnectionID connectionid, BiteID id1, BiteID id2, std::vector<Coord> xy)
-{
+bool Datastructures::add_connection(ConnectionID connectionid, BiteID id1, BiteID id2, std::vector<Coord> xy) {
     if (connection_map.find(connectionid) != connection_map.end()) {
         return false;
     }
@@ -509,19 +508,24 @@ bool Datastructures::add_connection(ConnectionID connectionid, BiteID id1, BiteI
         return false;
     }
 
-    Coord prev = bite1_it->second.xy;
-    for (const Coord& coord : xy) {
-        if (prev.x != coord.x && prev.y != coord.y) {
+    // If no coordinates provided, use the coordinates of id2 (the destination)
+    if (xy.empty()) {
+        Coord end_coord = bite2_it->second.xy; // Get coordinates of the second bite
+        xy.push_back(end_coord); // Use the coordinates of id2
+    } else {
+        Coord prev = bite1_it->second.xy;
+        for (const Coord& coord : xy) {
+            if (prev.x != coord.x && prev.y != coord.y) {
+                return false;
+            }
+            prev = coord;
+        }
+
+        Coord end = bite2_it->second.xy;
+        if (prev.x != end.x && prev.y != end.y) {
             return false;
         }
-        prev = coord;
     }
-
-    Coord end = bite2_it->second.xy;
-    if (prev.x != end.x && prev.y != end.y) {
-        return false;
-    }
-
 
     Connection new_connection{id1, id2, xy};
     connection_map[connectionid] = new_connection;
@@ -645,11 +649,13 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
 
     // Ensure the bites exist, return error indicator if not
     if (id_map.find(fromid) == id_map.end() || id_map.find(toid) == id_map.end()) {
+        qDebug() << "Error: One of the bites does not exist. fromid:" << fromid << "toid:" << toid;
         return {{NO_COORD, NO_DISTANCE}};
     }
 
     // Get the starting and ending coordinates
     Coord from_coord = get_bite_coord(fromid);
+    qDebug() << "Starting BFS from:" << from_coord.x << "to:" << get_bite_coord(toid).x;
 
     // BFS queue: store bite ID, the path so far, and accumulated distance
     std::queue<std::tuple<BiteID, Coord, Distance, std::vector<std::pair<Coord, Distance>>>> q;
@@ -665,11 +671,13 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
 
         // Check if we reached the destination bite
         if (current_id == toid) {
+            qDebug() << "Path found to:" << toid;
             return current_path;
         }
 
         // Explore all connections from the current bite
         std::vector<ConnectionID> connections = get_connections(current_id);
+        qDebug() << "Current bite:" << current_id << "Connections:" << connections;
 
         for (const auto& conn_id : connections) {
             Connection connection = connection_map[conn_id];
@@ -677,6 +685,7 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
 
             // Skip already visited bites to avoid loops
             if (visited.find(next_bite) != visited.end()) {
+                qDebug() << "Skipping already visited bite:" << next_bite;
                 continue;
             }
 
@@ -688,6 +697,7 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
                 // Build the new path including this connection point
                 std::vector<std::pair<Coord, Distance>> new_path = current_path;
                 new_path.emplace_back(conn_coord, new_total_distance);
+                qDebug() << "Evaluating connection at:" << conn_coord.x << "New total distance:" << new_total_distance;
 
                 // Check if we reached the next bite
                 Coord next_bite_coord = get_bite_coord(next_bite);
@@ -695,16 +705,19 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
                     Distance distance_to_bite = std::abs(next_bite_coord.x - conn_coord.x) + std::abs(next_bite_coord.y - conn_coord.y);
                     new_total_distance += distance_to_bite;
                     new_path.emplace_back(next_bite_coord, new_total_distance);
+                    qDebug() << "Added bite coordinate:" << next_bite_coord.x << "Updated total distance:" << new_total_distance;
                 }
 
                 // Enqueue the next bite for further exploration
                 q.push({next_bite, next_bite_coord, new_total_distance, new_path});
                 visited.insert(next_bite);
+                qDebug() << "Enqueued bite:" << next_bite << "with path length:" << new_path.size();
             }
         }
     }
 
     // If we exit the loop without finding a path, return error
+    qDebug() << "No path found from" << fromid << "to" << toid;
     return path;
 }
 
