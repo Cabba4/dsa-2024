@@ -85,6 +85,14 @@ Coord Datastructures::get_bite_coord(BiteID id)
 }
 
 // Optimising get bites function
+// This function retrieves all BiteIDs and sorts them alphabetically by their name.
+// Performance Analysis:
+// 1. The initial loop to build the `bites_with_names` vector adds an O(n) complexity where n is the number of elements in `bites`.
+// 2. The sorting operation uses `std::sort`, which has a time complexity of O(n log n).
+// 3. The use of `emplace_back` and `reserve` optimizes memory allocation, reducing reallocation overhead during insertion.
+// 4. Criticism: Sorting with pairs of BiteID and strings may introduce additional overhead due to the string comparisons.
+//    A possible optimization could be to keep the BiteIDs in an auxiliary data structure indexed by name for faster lookups.
+// 5. Praiseworthy: The usage of `reserve()` for both vectors is an excellent way to prevent memory allocation inefficiencies.
 std::vector<BiteID> Datastructures::get_bites_alphabetically()
 {
     std::vector<std::pair<BiteID, std::string>> bites_with_names;
@@ -113,6 +121,14 @@ std::vector<BiteID> Datastructures::get_bites_alphabetically()
 }
 
 
+// This function retrieves all BiteIDs and sorts them by increasing Manhattan distance.
+// Performance Analysis:
+// 1. The initial loop to build the `bites_sorted` vector adds O(n) complexity, where n is the size of `bites`.
+// 2. Sorting uses `std::sort`, which contributes O(n log n) complexity.
+// 3. Criticism: The `manhattan_distance` function is called multiple times per element in the comparison lambda.
+//    This results in redundant computations of Manhattan distance, which could be cached for better performance.
+// 4. Additionally, checking `bite1.coord.y` introduces another layer of sorting overhead, which could be simplified.
+// 5. Praiseworthy: The structure of the sorting logic, prioritizing distance, followed by y-coordinates, is logically sound and provides a clear sorting hierarchy.
 std::vector<BiteID> Datastructures::get_bites_distance_increasing()
 {
     std::vector<std::pair<BiteID, Bite>> bites_sorted;
