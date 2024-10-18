@@ -105,7 +105,12 @@ Coord Datastructures::get_bite_coord(BiteID id)
 
 
 
-
+// This function retrieves all BiteIDs and sorts them alphabetically by their name only if there has been a change.
+// Performance Analysis:
+// 1. The `change_alphabeticall` flag prevents redundant sorting operations, improving efficiency by avoiding unnecessary re-sorting.
+// 2. Sorting with `std::sort` on the `bite_ids_alphabetically` vector still incurs O(n log n) complexity, but it is only done once, making subsequent calls O(1).
+// 3. Criticism: Accessing `bite_map.at()` within the lambda adds overhead due to the repeated lookups for each comparison. Caching names beforehand could improve efficiency.
+// 4. Praiseworthy: The flag-based approach is a significant optimization for large datasets, reducing computation in scenarios with infrequent changes.
 std::vector<BiteID> Datastructures::get_bites_alphabetically()
 {
     if (!change_alphabeticall) {
@@ -126,7 +131,12 @@ std::vector<BiteID> Datastructures::get_bites_alphabetically()
 
 }
 
-
+// This function retrieves all BiteIDs and sorts them by increasing Manhattan distance only if there has been a change.
+// Performance Analysis:
+// 1. The `change_distance` flag ensures sorting is only done when needed, greatly improving performance on repeated function calls by making subsequent calls O(1).
+// 2. Sorting using Manhattan distance calculation has O(n log n) complexity, but caching the results would improve performance further.
+// 3. Criticism: The repeated computation of Manhattan distances for every comparison in the sort could be optimized by precomputing and storing distances in an auxiliary data structure.
+// 4. Praiseworthy: The sorting logic handles tie-breaking with y-coordinates and BiteID efficiently, and the use of the change flag significantly reduces redundant work.
 std::vector<BiteID> Datastructures::get_bites_distance_increasing() {
     if (!change_distance) {
     std::sort(bite_ids_distance.begin(), bite_ids_distance.end(), [&](const BiteID id1, const BiteID id2) {
