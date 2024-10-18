@@ -16,11 +16,13 @@
 
 #include "datastructures.hh"
 #include "customtypes.hh"
+#include "qdebug.h"
 #include <algorithm>
 #include <unordered_set>
 #include <functional>
 #include <queue>
 #include <set>
+#include <iostream>
 
 Datastructures::Datastructures()
 {
@@ -637,114 +639,75 @@ std::vector<Coord> Datastructures::get_connection_coords(BiteID biteid, Connecti
 
 //--------------------------------
 
+
 std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, BiteID toid) {
     std::vector<std::pair<Coord, Distance>> path;
 
-    // Ensure the bites exist
+    // Ensure the bites exist, return error indicator if not
     if (id_map.find(fromid) == id_map.end() || id_map.find(toid) == id_map.end()) {
-        return {{NO_COORD, NO_DISTANCE}}; // Return empty if either bite doesn't exist
+        return {{NO_COORD, NO_DISTANCE}};
     }
 
-    // Get starting coordinates
+    // Get the starting and ending coordinates
     Coord from_coord = get_bite_coord(fromid);
-    Coord to_coord = get_bite_coord(toid);
 
-    // Add starting coordinate to the path
-    path.emplace_back(from_coord, 0); // Start point with 0 distance
+    // BFS queue: store bite ID, the path so far, and accumulated distance
+    std::queue<std::tuple<BiteID, Coord, Distance, std::vector<std::pair<Coord, Distance>>>> q;
+    q.push({fromid, from_coord, 0, {{from_coord, 0}}});
 
-    // Keep track of the total distance accumulated as we go through each connection
-    Distance total_distance = 0;
-
-    // Use a loop to explore each bite's connections until we reach the destination bite
-    BiteID current_id = fromid;
-    Coord current_coord = from_coord;
-
-    // Unordered set to track visited bites to avoid cycles
+    // Unordered set to track visited bites
     std::unordered_set<BiteID> visited;
-    visited.insert(current_id);
+    visited.insert(fromid);
 
-    // Keep traversing connections until we reach the destination bite
-    while (current_id != toid) {
-        std::vector<ConnectionID> connections = get_connections(current_id);
+    while (!q.empty()) {
+        auto [current_id, current_coord, total_distance, current_path] = q.front();
+        q.pop();
 
-        // If no connections are found, break out of the loop
-        if (connections.empty()) {
-            break;
+        // Check if we reached the destination bite
+        if (current_id == toid) {
+            return current_path;
         }
 
-        bool found_next = false;
+        // Explore all connections from the current bite
+        std::vector<ConnectionID> connections = get_connections(current_id);
 
         for (const auto& conn_id : connections) {
             Connection connection = connection_map[conn_id];
-
-            // Determine the next bite ID to traverse
             BiteID next_bite = (connection.bite1 == current_id) ? connection.bite2 : connection.bite1;
 
-            // Skip if we've already visited this bite to avoid loops
+            // Skip already visited bites to avoid loops
             if (visited.find(next_bite) != visited.end()) {
                 continue;
             }
 
             // Traverse through each coordinate in the connection
             for (const auto& conn_coord : connection.coords) {
-                // Calculate the Manhattan distance between current_coord and conn_coord
                 Distance distance_to_next = std::abs(conn_coord.x - current_coord.x) + std::abs(conn_coord.y - current_coord.y);
+                Distance new_total_distance = total_distance + distance_to_next;
 
-                // Update total distance by adding the new segment's distance
-                total_distance += distance_to_next;
+                // Build the new path including this connection point
+                std::vector<std::pair<Coord, Distance>> new_path = current_path;
+                new_path.emplace_back(conn_coord, new_total_distance);
 
-                // Add the connection point to the path
-                path.emplace_back(conn_coord, total_distance);
-
-                // Check if the next bite is in between and add it to the path
+                // Check if we reached the next bite
                 Coord next_bite_coord = get_bite_coord(next_bite);
                 if (next_bite_coord != conn_coord) {
-                    // Calculate the distance to the next bite
                     Distance distance_to_bite = std::abs(next_bite_coord.x - conn_coord.x) + std::abs(next_bite_coord.y - conn_coord.y);
-
-                    // Update total distance
-                    total_distance += distance_to_bite;
-
-                    // Add the intermediate bite to the path
-                    path.emplace_back(next_bite_coord, total_distance);
+                    new_total_distance += distance_to_bite;
+                    new_path.emplace_back(next_bite_coord, new_total_distance);
                 }
 
-                // If we've reached the destination, stop further processing
-                if (next_bite == toid) {
-                    return path;
-                }
-
-                // Update the current coordinate and ID
-                current_coord = next_bite_coord;
-                current_id = next_bite;
-
-                found_next = true;
-                break; // Move to the next bite
+                // Enqueue the next bite for further exploration
+                q.push({next_bite, next_bite_coord, new_total_distance, new_path});
+                visited.insert(next_bite);
             }
-
-            // Mark this bite as visited
-            visited.insert(next_bite);
-
-            if (found_next) {
-                break;
-            }
-        }
-
-        // If no next bite is found, break to avoid infinite loops
-        if (!found_next) {
-            break;
         }
     }
 
-    // After exiting the loop, calculate the distance to the destination bite
-    Distance distance_to_dest = std::abs(to_coord.x - current_coord.x) + std::abs(to_coord.y - current_coord.y);
-    total_distance += distance_to_dest;
-
-    // Add the destination coordinates to the path with the accumulated distance
-    path.emplace_back(to_coord, total_distance);
-
+    // If we exit the loop without finding a path, return error
     return path;
 }
+
 
 //--------------------------------
 
