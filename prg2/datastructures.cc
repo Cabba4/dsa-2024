@@ -629,13 +629,20 @@ std::vector<Coord> Datastructures::get_connection_coords(BiteID biteid, Connecti
     if (connection.bite1 == biteid) {
         coords.push_back(id_map[connection.bite1].xy);
         coords.insert(coords.end(), connection.coords.begin(), connection.coords.end());
-        coords.push_back(id_map[connection.bite2].xy);
-    }
 
+        // Avoid adding the end bite's coordinates twice
+        if (connection.coords.empty() || connection.coords.back() != id_map[connection.bite2].xy) {
+            coords.push_back(id_map[connection.bite2].xy);
+        }
+    }
     else if (connection.bite2 == biteid) {
         coords.push_back(id_map[connection.bite2].xy);
         coords.insert(coords.end(), connection.coords.rbegin(), connection.coords.rend());
-        coords.push_back(id_map[connection.bite1].xy);
+
+        // Avoid adding the start bite's coordinates twice
+        if (connection.coords.empty() || connection.coords.front() != id_map[connection.bite1].xy) {
+            coords.push_back(id_map[connection.bite1].xy);
+        }
     }
 
     return coords;
@@ -643,84 +650,96 @@ std::vector<Coord> Datastructures::get_connection_coords(BiteID biteid, Connecti
 
 //--------------------------------
 
-
 std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, BiteID toid) {
     std::vector<std::pair<Coord, Distance>> path;
 
-    // Ensure the bites exist, return error indicator if not
     if (id_map.find(fromid) == id_map.end() || id_map.find(toid) == id_map.end()) {
-        qDebug() << "Error: One of the bites does not exist. fromid:" << fromid << "toid:" << toid;
+        qDebug() << "Either fromid or toid not found in id_map.";
         return {{NO_COORD, NO_DISTANCE}};
     }
 
-    // Get the starting and ending coordinates
+    if (fromid == toid) {
+        qDebug() << "FromID is the same as ToID. No path needed.";
+        return {};
+    }
+
     Coord from_coord = get_bite_coord(fromid);
-    qDebug() << "Starting BFS from:" << from_coord.x << "to:" << get_bite_coord(toid).x;
+    qDebug() << "Starting BFS from:" << from_coord.x << "," << from_coord.y;
 
-    // BFS queue: store bite ID, the path so far, and accumulated distance
-    std::queue<std::tuple<BiteID, Coord, Distance, std::vector<std::pair<Coord, Distance>>>> q;
-    q.push({fromid, from_coord, 0, {{from_coord, 0}}});
+    // Queue for BFS traversal
+    std::queue<std::tuple<BiteID, Coord, Distance, std::vector<std::pair<Coord, Distance>>>> bfs_queue;
+    bfs_queue.push({fromid, from_coord, 0, {{from_coord, 0}}});
 
-    // Unordered set to track visited bites
     std::unordered_set<BiteID> visited;
-    visited.insert(fromid);
 
-    while (!q.empty()) {
-        auto [current_id, current_coord, total_distance, current_path] = q.front();
-        q.pop();
+    while (!bfs_queue.empty()) {
+        auto [current_id, current_coord, total_distance, current_path] = bfs_queue.front();
+        bfs_queue.pop();
 
-        // Check if we reached the destination bite
+        if (visited.find(current_id) != visited.end()) {
+            qDebug() << "Already visited:" << current_id << ". Skipping...";
+            continue;
+        }
+        visited.insert(current_id);
+
         if (current_id == toid) {
-            qDebug() << "Path found to:" << toid;
+            qDebug() << "Reached target BiteID:" << toid;
             return current_path;
         }
 
-        // Explore all connections from the current bite
         std::vector<ConnectionID> connections = get_connections(current_id);
-        qDebug() << "Current bite:" << current_id << "Connections:" << connections;
 
         for (const auto& conn_id : connections) {
             Connection connection = connection_map[conn_id];
             BiteID next_bite = (connection.bite1 == current_id) ? connection.bite2 : connection.bite1;
 
-            // Skip already visited bites to avoid loops
             if (visited.find(next_bite) != visited.end()) {
-                qDebug() << "Skipping already visited bite:" << next_bite;
+                qDebug() << "Next BiteID" << next_bite << "has already been visited. Skipping...";
                 continue;
             }
 
-            // Traverse through each coordinate in the connection
+            std::vector<std::pair<Coord, Distance>> new_path = current_path;
+            Coord prev_coord = current_coord;
+            Distance distance_accumulated = total_distance;
+
+            // Traverse through the connection's coordinates
             for (const auto& conn_coord : connection.coords) {
-                Distance distance_to_next = std::abs(conn_coord.x - current_coord.x) + std::abs(conn_coord.y - current_coord.y);
-                Distance new_total_distance = total_distance + distance_to_next;
-
-                // Build the new path including this connection point
-                std::vector<std::pair<Coord, Distance>> new_path = current_path;
-                new_path.emplace_back(conn_coord, new_total_distance);
-                qDebug() << "Evaluating connection at:" << conn_coord.x << "New total distance:" << new_total_distance;
-
-                // Check if we reached the next bite
-                Coord next_bite_coord = get_bite_coord(next_bite);
-                if (next_bite_coord != conn_coord) {
-                    Distance distance_to_bite = std::abs(next_bite_coord.x - conn_coord.x) + std::abs(next_bite_coord.y - conn_coord.y);
-                    new_total_distance += distance_to_bite;
-                    new_path.emplace_back(next_bite_coord, new_total_distance);
-                    qDebug() << "Added bite coordinate:" << next_bite_coord.x << "Updated total distance:" << new_total_distance;
+                // Ensure only valid moves (same x or same y) are added
+                if (prev_coord.x != conn_coord.x && prev_coord.y != conn_coord.y) {
+                    qDebug() << "Skipping invalid move from" << prev_coord.x << "," << prev_coord.y << "to" << conn_coord.x << "," << conn_coord.y;
+                    continue; // Skip if neither x nor y matches
                 }
 
-                // Enqueue the next bite for further exploration
-                q.push({next_bite, next_bite_coord, new_total_distance, new_path});
-                visited.insert(next_bite);
-                qDebug() << "Enqueued bite:" << next_bite << "with path length:" << new_path.size();
+                Distance distance_to_next = std::abs(conn_coord.x - prev_coord.x) + std::abs(conn_coord.y - prev_coord.y);
+                distance_accumulated += distance_to_next;
+                new_path.emplace_back(conn_coord, distance_accumulated);
+                prev_coord = conn_coord;
+
+                qDebug() << "Traversed to:" << conn_coord.x << "," << conn_coord.y << ", Accumulated Distance:" << distance_accumulated;
             }
+
+            // Move to the next bite coordinate
+            Coord next_bite_coord = get_bite_coord(next_bite);
+            if (prev_coord != next_bite_coord) {
+                // Check if next bite is valid
+                if (prev_coord.x != next_bite_coord.x && prev_coord.y != next_bite_coord.y) {
+                    qDebug() << "Skipping invalid move to next bite at:" << next_bite_coord.x << "," << next_bite_coord.y;
+                } else {
+                    Distance distance_to_bite = std::abs(next_bite_coord.x - prev_coord.x) + std::abs(next_bite_coord.y - prev_coord.y);
+                    distance_accumulated += distance_to_bite;
+                    new_path.emplace_back(next_bite_coord, distance_accumulated);
+
+                    qDebug() << "Moving to next bite at:" << next_bite_coord.x << "," << next_bite_coord.y << ", Total Distance:" << distance_accumulated;
+                }
+            }
+
+            bfs_queue.push({next_bite, next_bite_coord, distance_accumulated, new_path});
         }
     }
 
-    // If we exit the loop without finding a path, return error
-    qDebug() << "No path found from" << fromid << "to" << toid;
-    return path;
+    qDebug() << "No path found from" << fromid << "to" << toid << ".";
+    return {};
 }
-
 
 //--------------------------------
 
