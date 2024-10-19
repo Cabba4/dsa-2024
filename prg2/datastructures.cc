@@ -17,7 +17,7 @@
 #include "datastructures.hh"
 #include "customtypes.hh"
 #include <algorithm>
-#include <QDebug>
+//#include <QDebug>
 #include <unordered_set>
 #include <functional>
 #include <queue>
@@ -654,17 +654,14 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
     std::vector<std::pair<Coord, Distance>> path;
 
     if (id_map.find(fromid) == id_map.end() || id_map.find(toid) == id_map.end()) {
-        qDebug() << "Either fromid or toid not found in id_map.";
         return {{NO_COORD, NO_DISTANCE}};
     }
 
     if (fromid == toid) {
-        qDebug() << "FromID is the same as ToID. No path needed.";
         return {};
     }
 
     Coord from_coord = get_bite_coord(fromid);
-    qDebug() << "Starting BFS from:" << from_coord.x << "," << from_coord.y;
 
     // Queue for BFS traversal
     std::queue<std::tuple<BiteID, Coord, Distance, std::vector<std::pair<Coord, Distance>>>> bfs_queue;
@@ -677,13 +674,11 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
         bfs_queue.pop();
 
         if (visited.find(current_id) != visited.end()) {
-            qDebug() << "Already visited:" << current_id << ". Skipping...";
             continue;
         }
         visited.insert(current_id);
 
         if (current_id == toid) {
-            qDebug() << "Reached target BiteID:" << toid;
             return current_path;
         }
 
@@ -694,7 +689,6 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
             BiteID next_bite = (connection.bite1 == current_id) ? connection.bite2 : connection.bite1;
 
             if (visited.find(next_bite) != visited.end()) {
-                qDebug() << "Next BiteID" << next_bite << "has already been visited. Skipping...";
                 continue;
             }
 
@@ -706,7 +700,6 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
             for (const auto& conn_coord : connection.coords) {
                 // Ensure only valid moves (same x or same y) are added
                 if (prev_coord.x != conn_coord.x && prev_coord.y != conn_coord.y) {
-                    qDebug() << "Skipping invalid move from" << prev_coord.x << "," << prev_coord.y << "to" << conn_coord.x << "," << conn_coord.y;
                     continue; // Skip if neither x nor y matches
                 }
 
@@ -714,8 +707,6 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
                 distance_accumulated += distance_to_next;
                 new_path.emplace_back(conn_coord, distance_accumulated);
                 prev_coord = conn_coord;
-
-                qDebug() << "Traversed to:" << conn_coord.x << "," << conn_coord.y << ", Accumulated Distance:" << distance_accumulated;
             }
 
             // Move to the next bite coordinate
@@ -723,13 +714,11 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
             if (prev_coord != next_bite_coord) {
                 // Check if next bite is valid
                 if (prev_coord.x != next_bite_coord.x && prev_coord.y != next_bite_coord.y) {
-                    qDebug() << "Skipping invalid move to next bite at:" << next_bite_coord.x << "," << next_bite_coord.y;
+                    continue; // Skip if invalid move to the next bite
                 } else {
                     Distance distance_to_bite = std::abs(next_bite_coord.x - prev_coord.x) + std::abs(next_bite_coord.y - prev_coord.y);
                     distance_accumulated += distance_to_bite;
                     new_path.emplace_back(next_bite_coord, distance_accumulated);
-
-                    qDebug() << "Moving to next bite at:" << next_bite_coord.x << "," << next_bite_coord.y << ", Total Distance:" << distance_accumulated;
                 }
             }
 
@@ -737,9 +726,9 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
         }
     }
 
-    qDebug() << "No path found from" << fromid << "to" << toid << ".";
     return {};
 }
+
 
 //--------------------------------
 
