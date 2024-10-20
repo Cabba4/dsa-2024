@@ -497,6 +497,8 @@ ContourID Datastructures::get_closest_common_ancestor_of_contours(ContourID id1,
  * ============================
  */
 
+#include <QDebug> // Include QDebug for logging
+
 bool Datastructures::add_connection(ConnectionID connectionid, BiteID id1, BiteID id2,
                                     std::vector<Coord> xy)
 {
@@ -575,56 +577,45 @@ std::vector<BiteID> Datastructures::get_next_bites_from(BiteID id)
     return next_bites;
 }
 
+std::vector<ConnectionID> Datastructures::get_connections(BiteID id1, BiteID id2) {
+    std::vector<ConnectionID> connections;
 
-std::vector<ConnectionID> Datastructures::get_connections(BiteID id1, BiteID id2)
-{
-    // If no bite IDs are provided, return all connection IDs
     if (id1 == NO_BITE && id2 == NO_BITE) {
-        std::vector<ConnectionID> all_connections;
-        for (const auto& pair : connection_map) {
-            all_connections.push_back(pair.first);
+        for (const auto& conn_pair : connection_map) {
+            connections.push_back(conn_pair.first);
         }
-        return all_connections;
+        return connections;
     }
 
-    // If only bite1 is provided, return all connections related to bite1
     if (id2 == NO_BITE) {
-        auto it = bite_connections.find(id1);
-        if (it == bite_connections.end()) {
-            return { NO_CONNECTION };  // No connections found for the bite
+        for (const auto& conn_pair : connection_map) {
+            const Connection& conn = conn_pair.second;
+
+            if (conn.bite1 == id1 || conn.bite2 == id1) {
+                connections.push_back(conn_pair.first);
+            }
         }
-        return it->second;  // Return the connections for bite1
+        return connections.empty() ? std::vector<ConnectionID>{NO_CONNECTION} : connections;
     }
 
-    // If both bite1 and bite2 are provided, find connections between the two bites
-    std::vector<ConnectionID> common_connections;
-    auto it1 = bite_connections.find(id1);
-    auto it2 = bite_connections.find(id2);
+    bool bite1Exists = id_map.find(id1) != id_map.end();
+    bool bite2Exists = id_map.find(id2) != id_map.end();
 
-    // Check if either bite is not found in the connections map
-    if (it1 == bite_connections.end() || it2 == bite_connections.end()) {
-        if (id_map.find(id1) == id_map.end() || id_map.find(id2) == id_map.end()) {
-            return { NO_CONNECTION };  // Either bite not found
-        }
-        return {};  // No connection between the bites but both bites exist
+
+    if (!bite1Exists || !bite2Exists) {
+        return {NO_CONNECTION};
     }
 
-    // Find common connections between bite1 and bite2
-    const auto& connections_bite1 = it1->second;
-    const auto& connections_bite2 = it2->second;
+    for (const auto& conn_pair : connection_map) {
+        const Connection& conn = conn_pair.second;
 
-    for (const auto& conn : connections_bite1) {
-        if (std::find(connections_bite2.begin(), connections_bite2.end(), conn) != connections_bite2.end() && std::find(common_connections.begin(), common_connections.end(), conn) == common_connections.end()) {
-            common_connections.push_back(conn);  // Connection exists between bite1 and bite2
+        if ((conn.bite1 == id1 && conn.bite2 == id2) ||
+            (conn.bite1 == id2 && conn.bite2 == id1)) {
+            connections.push_back(conn_pair.first);
         }
     }
 
-    // If no common connections, return an empty vector
-    if (common_connections.empty()) {
-        return {};
-    }
-
-    return common_connections;
+    return connections;
 }
 
 std::vector<Coord> Datastructures::get_connection_coords(BiteID biteid,
