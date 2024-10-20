@@ -497,7 +497,6 @@ ContourID Datastructures::get_closest_common_ancestor_of_contours(ContourID id1,
  * ============================
  */
 
-#include <QDebug> // Include QDebug for logging
 
 bool Datastructures::add_connection(ConnectionID connectionid, BiteID id1, BiteID id2,
                                     std::vector<Coord> xy)
