@@ -650,85 +650,102 @@ std::vector<Coord> Datastructures::get_connection_coords(BiteID biteid, Connecti
 
 //--------------------------------
 
+Distance Datastructures::manhattan_distance(const Coord& coord1, const Coord& coord2) {
+    return std::abs(coord1.x - coord2.x) + std::abs(coord1.y - coord2.y);
+}
+
 std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, BiteID toid) {
     std::vector<std::pair<Coord, Distance>> path;
+    auto from_it = id_map.find(fromid);
+    auto to_it = id_map.find(toid);
 
-    if (id_map.find(fromid) == id_map.end() || id_map.find(toid) == id_map.end()) {
-        return {{NO_COORD, NO_DISTANCE}};
+    if (from_it == id_map.end() || to_it == id_map.end()) {
+        return { { NO_COORD, NO_DISTANCE } };
     }
 
     if (fromid == toid) {
         return {};
     }
 
-    Coord from_coord = get_bite_coord(fromid);
+    std::unordered_map<BiteID, BiteID> came_from;
+    std::queue<BiteID> to_visit;
 
-    // Queue for BFS traversal
-    std::queue<std::tuple<BiteID, Coord, Distance, std::vector<std::pair<Coord, Distance>>>> bfs_queue;
-    bfs_queue.push({fromid, from_coord, 0, {{from_coord, 0}}});
+    to_visit.push(fromid);
+    came_from[fromid] = NO_BITE;
 
-    std::unordered_set<BiteID> visited;
+    while (!to_visit.empty()) {
+        BiteID current = to_visit.front();
+        to_visit.pop();
 
-    while (!bfs_queue.empty()) {
-        auto [current_id, current_coord, total_distance, current_path] = bfs_queue.front();
-        bfs_queue.pop();
+        if (current == toid) {
+            std::vector<std::pair<Coord, Distance>> reversed_path;
+            BiteID step = toid;
+            Coord prev_coord = to_it->second.xy;
 
-        if (visited.find(current_id) != visited.end()) {
-            continue;
-        }
-        visited.insert(current_id);
+            reversed_path.emplace_back(prev_coord, 0);
 
-        if (current_id == toid) {
-            return current_path;
-        }
+            while (step != fromid) {
+                BiteID previous_bite_id = came_from[step];
 
-        std::vector<ConnectionID> connections = get_connections(current_id);
-
-        for (const auto& conn_id : connections) {
-            Connection connection = connection_map[conn_id];
-            BiteID next_bite = (connection.bite1 == current_id) ? connection.bite2 : connection.bite1;
-
-            if (visited.find(next_bite) != visited.end()) {
-                continue;
-            }
-
-            std::vector<std::pair<Coord, Distance>> new_path = current_path;
-            Coord prev_coord = current_coord;
-            Distance distance_accumulated = total_distance;
-
-            // Traverse through the connection's coordinates
-            for (const auto& conn_coord : connection.coords) {
-                // Ensure only valid moves (same x or same y) are added
-                if (prev_coord.x != conn_coord.x && prev_coord.y != conn_coord.y) {
-                    continue; // Skip if neither x nor y matches
+                std::vector<ConnectionID> connections = get_connections(step, previous_bite_id);
+                if (connections.empty()) {
+                    return {};
                 }
 
-                Distance distance_to_next = std::abs(conn_coord.x - prev_coord.x) + std::abs(conn_coord.y - prev_coord.y);
-                distance_accumulated += distance_to_next;
-                new_path.emplace_back(conn_coord, distance_accumulated);
-                prev_coord = conn_coord;
-            }
+                Connection connection = connection_map[connections[0]];
+                const std::vector<Coord>& intermediate_coords = connection.coords;
 
-            // Move to the next bite coordinate
-            Coord next_bite_coord = get_bite_coord(next_bite);
-            if (prev_coord != next_bite_coord) {
-                // Check if next bite is valid
-                if (prev_coord.x != next_bite_coord.x && prev_coord.y != next_bite_coord.y) {
-                    continue; // Skip if invalid move to the next bite
+                bool reverse_intermediates = (connection.bite1 != step);
+
+                if (reverse_intermediates) {
+                    for (auto it = intermediate_coords.rbegin(); it != intermediate_coords.rend(); ++it) {
+                        if (prev_coord.x != it->x || prev_coord.y != it->y) { // Check for duplicates
+                            Distance dist = manhattan_distance(prev_coord, *it);
+                            reversed_path.emplace_back(*it, dist);
+                            prev_coord = *it;
+                        }
+                    }
                 } else {
-                    Distance distance_to_bite = std::abs(next_bite_coord.x - prev_coord.x) + std::abs(next_bite_coord.y - prev_coord.y);
-                    distance_accumulated += distance_to_bite;
-                    new_path.emplace_back(next_bite_coord, distance_accumulated);
+                    for (const auto& coord : intermediate_coords) {
+                        if (prev_coord.x != coord.x || prev_coord.y != coord.y) { // Check for duplicates
+                            Distance dist = manhattan_distance(prev_coord, coord);
+                            reversed_path.emplace_back(coord, dist);
+                            prev_coord = coord;
+                        }
+                    }
+                }
+
+                Coord previous_coord = get_bite_coord(previous_bite_id);
+                if (prev_coord.x != previous_coord.x || prev_coord.y != previous_coord.y) { // Check for duplicates
+                    Distance dist = manhattan_distance(prev_coord, previous_coord);
+                    reversed_path.emplace_back(previous_coord, dist);
+                }
+
+                step = previous_bite_id;
+                prev_coord = previous_coord;
+            }
+
+            Distance total_distance = 0;
+            for (auto it = reversed_path.rbegin(); it != reversed_path.rend(); ++it) {
+                if (path.empty() || (path.back().first.x != it->first.x || path.back().first.y != it->first.y)) { // Check for duplicates
+                    path.emplace_back(it->first, total_distance);
+                    total_distance += it->second;
                 }
             }
 
-            bfs_queue.push({next_bite, next_bite_coord, distance_accumulated, new_path});
+            return path;
+        }
+
+        for (const auto& next_bite : get_next_bites_from(current)) {
+            if (came_from.find(next_bite) == came_from.end()) {
+                came_from[next_bite] = current;
+                to_visit.push(next_bite);
+            }
         }
     }
 
     return {};
 }
-
 
 //--------------------------------
 

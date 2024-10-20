@@ -213,7 +213,18 @@ private:
         BiteID bite1;
         BiteID bite2;
         std::vector<Coord> coords;
+
+        Connection() : bite1(0), bite2(0), coords() {}
+
+        Connection(BiteID b1, BiteID b2, const std::vector<Coord>& intermediate_coords)
+            : bite1(b1), bite2(b2), coords(intermediate_coords) {}
+
+        bool has_bite(BiteID bite_id) const {
+            return bite_id == bite1 || bite_id == bite2;
+        }
     };
+
+    Distance manhattan_distance(const Coord& coord1, const Coord& coord2);
     std::unordered_map<ConnectionID, Connection> connection_map;
 
 };
