@@ -668,6 +668,7 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
     }
 
     std::unordered_map<BiteID, BiteID> came_from;
+    std::unordered_set<BiteID> visited;  // Use a set for visited nodes
     std::queue<BiteID> to_visit;
 
     to_visit.push(fromid);
@@ -686,37 +687,27 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
 
             while (step != fromid) {
                 BiteID previous_bite_id = came_from[step];
-
                 std::vector<ConnectionID> connections = get_connections(step, previous_bite_id);
+
                 if (connections.empty()) {
                     return {};
                 }
 
                 Connection connection = connection_map[connections[0]];
                 const std::vector<Coord>& intermediate_coords = connection.coords;
-
                 bool reverse_intermediates = (connection.bite1 != step);
 
-                if (reverse_intermediates) {
-                    for (auto it = intermediate_coords.rbegin(); it != intermediate_coords.rend(); ++it) {
-                        if (prev_coord.x != it->x || prev_coord.y != it->y) { // Check for duplicates
-                            Distance dist = manhattan_distance(prev_coord, *it);
-                            reversed_path.emplace_back(*it, dist);
-                            prev_coord = *it;
-                        }
-                    }
-                } else {
-                    for (const auto& coord : intermediate_coords) {
-                        if (prev_coord.x != coord.x || prev_coord.y != coord.y) { // Check for duplicates
-                            Distance dist = manhattan_distance(prev_coord, coord);
-                            reversed_path.emplace_back(coord, dist);
-                            prev_coord = coord;
-                        }
+                // Use one loop to add intermediate coordinates
+                for (const auto& coord : (reverse_intermediates ? std::vector<Coord>(intermediate_coords.rbegin(), intermediate_coords.rend()) : intermediate_coords)) {
+                    if (prev_coord.x != coord.x || prev_coord.y != coord.y) {
+                        Distance dist = manhattan_distance(prev_coord, coord);
+                        reversed_path.emplace_back(coord, dist);
+                        prev_coord = coord;
                     }
                 }
 
                 Coord previous_coord = get_bite_coord(previous_bite_id);
-                if (prev_coord.x != previous_coord.x || prev_coord.y != previous_coord.y) { // Check for duplicates
+                if (prev_coord.x != previous_coord.x || prev_coord.y != previous_coord.y) {
                     Distance dist = manhattan_distance(prev_coord, previous_coord);
                     reversed_path.emplace_back(previous_coord, dist);
                 }
@@ -727,17 +718,18 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
 
             Distance total_distance = 0;
             for (auto it = reversed_path.rbegin(); it != reversed_path.rend(); ++it) {
-                if (path.empty() || (path.back().first.x != it->first.x || path.back().first.y != it->first.y)) { // Check for duplicates
+                if (path.empty() || (path.back().first.x != it->first.x || path.back().first.y != it->first.y)) {
                     path.emplace_back(it->first, total_distance);
                     total_distance += it->second;
                 }
             }
 
-            return path;
+            return path; // Return immediately upon finding a path
         }
 
         for (const auto& next_bite : get_next_bites_from(current)) {
-            if (came_from.find(next_bite) == came_from.end()) {
+            if (visited.find(next_bite) == visited.end()) { // Check if not visited
+                visited.insert(next_bite);
                 came_from[next_bite] = current;
                 to_visit.push(next_bite);
             }
