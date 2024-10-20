@@ -497,45 +497,39 @@ ContourID Datastructures::get_closest_common_ancestor_of_contours(ContourID id1,
  * ============================
  */
 
-bool Datastructures::add_connection(ConnectionID connectionid, BiteID id1, BiteID id2, std::vector<Coord> xy) {
+bool Datastructures::add_connection(ConnectionID connectionid, BiteID id1, BiteID id2,
+                                    std::vector<Coord> xy)
+{
+    // Check if the connection ID is unique
     if (connection_map.find(connectionid) != connection_map.end()) {
-        return false;
+        return false;  // Connection ID already exists
     }
 
-    auto bite1_it = id_map.find(id1);
-    auto bite2_it = id_map.find(id2);
-    if (bite1_it == id_map.end() || bite2_it == id_map.end()) {
-        return false;
+    // Check if both bites exist
+    if (id_map.find(id1) == id_map.end() || id_map.find(id2) == id_map.end()) {
+        return false;  // Either bite not found
     }
 
-    // If no coordinates provided, use the coordinates of id2 (the destination)
-    if (xy.empty()) {
-        Coord end_coord = bite2_it->second.xy; // Get coordinates of the second bite
-        xy.push_back(end_coord); // Use the coordinates of id2
-    } else {
-        Coord prev = bite1_it->second.xy;
-        for (const Coord& coord : xy) {
-            if (prev.x != coord.x && prev.y != coord.y) {
-                return false;
-            }
-            prev = coord;
-        }
-
-        Coord end = bite2_it->second.xy;
-        if (prev.x != end.x && prev.y != end.y) {
-            return false;
+    // Validate coordinates (straight line only)
+    for (size_t i = 1; i < xy.size(); ++i) {
+        if (xy[i - 1].x != xy[i].x && xy[i - 1].y != xy[i].y) {
+            return false;  // Diagonal movement not allowed
         }
     }
 
-    Connection new_connection{id1, id2, xy};
-    connection_map[connectionid] = new_connection;
+    // Add the connection to the data structure
+    connection_map.emplace(connectionid, Connection(id1, id2, xy));
 
-    bite1_it->second.connections.push_back(connectionid);
-    bite2_it->second.connections.push_back(connectionid);
+    // Populate the bite_to_connections_ map for bite1 if
+    bite_connections[id1].push_back(connectionid);
+
+    // Populate the bite_to_connections_ map for bite2 if the bites are different
+    if (id1 != id2) {
+        bite_connections[id2].push_back(connectionid);
+    }
 
     return true;
 }
-
 
 void Datastructures::clear_connections()
 {
@@ -611,131 +605,154 @@ std::vector<ConnectionID> Datastructures::get_connections(BiteID id1, BiteID id2
 }
 
 
-std::vector<Coord> Datastructures::get_connection_coords(BiteID biteid, ConnectionID connectionid)
+std::vector<Coord> Datastructures::get_connection_coords(BiteID biteid,
+                                                         ConnectionID connectionid)
 {
+    // Find the connection by ID
     auto conn_it = connection_map.find(connectionid);
+
+    // If connection is not found, return a vector with NO_COORD
     if (conn_it == connection_map.end()) {
-        return {NO_COORD};
+        return { NO_COORD };
     }
 
+    // Extract the connection object
     const Connection& connection = conn_it->second;
 
+    // Check if the provided biteid is part of the connection
     if (connection.bite1 != biteid && connection.bite2 != biteid) {
-        return {NO_COORD};
+        return { NO_COORD };  // Return NO_COORD if bite_id is not part of the connection
     }
 
-    std::vector<Coord> coords;
+    // Find the start and end bites of the connection
+    auto start_bite = id_map.find(connection.bite1);
+    auto end_bite = id_map.find(connection.bite2);
 
-    if (connection.bite1 == biteid) {
-        coords.push_back(id_map[connection.bite1].xy);
-        coords.insert(coords.end(), connection.coords.begin(), connection.coords.end());
+    // Retrieve the coordinates of the connection (including start and end bites)
+    std::vector<Coord> coords = connection.coords;
 
-        // Avoid adding the end bite's coordinates twice
-        if (connection.coords.empty() || connection.coords.back() != id_map[connection.bite2].xy) {
-            coords.push_back(id_map[connection.bite2].xy);
-        }
-    }
-    else if (connection.bite2 == biteid) {
-        coords.push_back(id_map[connection.bite2].xy);
-        coords.insert(coords.end(), connection.coords.rbegin(), connection.coords.rend());
+    // Add the start and end bite coordinates to the vector
+    coords.insert(coords.begin(), start_bite->second.xy);
+    coords.push_back(end_bite->second.xy);
 
-        // Avoid adding the start bite's coordinates twice
-        if (connection.coords.empty() || connection.coords.front() != id_map[connection.bite1].xy) {
-            coords.push_back(id_map[connection.bite1].xy);
-        }
+    // If the provided bite_id is the end bite, reverse the coordinates
+    if (connection.bite1 != biteid) {
+        std::reverse(coords.begin(), coords.end());
     }
 
-    return coords;
+    return coords;  // Return the vector of coordinates
 }
-
 //--------------------------------
 
 Distance Datastructures::manhattan_distance(const Coord& coord1, const Coord& coord2) {
     return std::abs(coord1.x - coord2.x) + std::abs(coord1.y - coord2.y);
 }
 
-std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, BiteID toid) {
-    std::vector<std::pair<Coord, Distance>> path;
+std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, BiteID toid)
+{
+    // Check if the start and end bites exist in the bites_ map
     auto from_it = id_map.find(fromid);
     auto to_it = id_map.find(toid);
 
+    // Return {NO_COORD, NO_DISTANCE} if either bite does not exist
     if (from_it == id_map.end() || to_it == id_map.end()) {
         return { { NO_COORD, NO_DISTANCE } };
     }
 
+    // If the starting and ending bites are the same, return an empty vector
     if (fromid == toid) {
         return {};
     }
 
-    std::unordered_map<BiteID, BiteID> came_from;
-    std::unordered_set<BiteID> visited;  // Use a set for visited nodes
-    std::queue<BiteID> to_visit;
+    // BFS or DFS to find any path (since we're not optimizing for shortest path)
+    std::unordered_map<BiteID, BiteID> came_from; // To track the path
+    std::queue<BiteID> to_visit;  // Queue for BFS
 
     to_visit.push(fromid);
-    came_from[fromid] = NO_BITE;
+    came_from[fromid] = NO_BITE;  // Mark the start point
 
     while (!to_visit.empty()) {
         BiteID current = to_visit.front();
         to_visit.pop();
 
+        // If we reached the destination, build the path
         if (current == toid) {
-            std::vector<std::pair<Coord, Distance>> reversed_path;
-            BiteID step = toid;
-            Coord prev_coord = to_it->second.xy;
+            std::vector<std::pair<Coord, Distance>> path;
 
+            // Start with the source point and trace forward to the destination
+            BiteID step = toid;
+            Coord prev_coord = to_it->second.xy; // Start at the destination bite
+
+            // We'll store the path coordinates in reverse and then fix it later
+            std::vector<std::pair<Coord, Distance>> reversed_path;
+
+            // Add the destination bite's coordinate
             reversed_path.emplace_back(prev_coord, 0);
 
             while (step != fromid) {
                 BiteID previous_bite_id = came_from[step];
-                std::vector<ConnectionID> connections = get_connections(step, previous_bite_id);
 
+                // Get the connection between step and previous_bite
+                std::vector<ConnectionID> connections = get_connections(step, previous_bite_id);
                 if (connections.empty()) {
-                    return {};
+                    return {}; // No valid connection found, return an empty path
                 }
 
-                Connection connection = connection_map[connections[0]];
+                // Use the first connection for simplicity
+                auto connection_it = connection_map.find(connections[0]);
+                if (connection_it == connection_map.end()) {
+                    return {}; // Connection not found, return an empty path
+                }
+                auto& connection = connection_it->second;
                 const std::vector<Coord>& intermediate_coords = connection.coords;
+
+                // Determine if we need to reverse the intermediate coordinates
                 bool reverse_intermediates = (connection.bite1 != step);
 
-                // Use one loop to add intermediate coordinates
-                for (const auto& coord : (reverse_intermediates ? std::vector<Coord>(intermediate_coords.rbegin(), intermediate_coords.rend()) : intermediate_coords)) {
-                    if (prev_coord.x != coord.x || prev_coord.y != coord.y) {
+                if (reverse_intermediates) {
+                    for (auto it = intermediate_coords.rbegin(); it != intermediate_coords.rend(); ++it) {
+                        Distance dist = manhattan_distance(prev_coord, *it);
+                        reversed_path.emplace_back(*it, dist);
+                        prev_coord = *it;
+                    }
+                } else {
+                    for (const auto& coord : intermediate_coords) {
                         Distance dist = manhattan_distance(prev_coord, coord);
                         reversed_path.emplace_back(coord, dist);
                         prev_coord = coord;
                     }
                 }
 
+                // Add the previous bite's coordinate and update the total distance
                 Coord previous_coord = get_bite_coord(previous_bite_id);
-                if (prev_coord.x != previous_coord.x || prev_coord.y != previous_coord.y) {
-                    Distance dist = manhattan_distance(prev_coord, previous_coord);
-                    reversed_path.emplace_back(previous_coord, dist);
-                }
+                Distance dist = manhattan_distance(prev_coord, previous_coord);
+                reversed_path.emplace_back(previous_coord, dist);
 
+                // Move to the previous bite
                 step = previous_bite_id;
                 prev_coord = previous_coord;
             }
 
+            // Now reverse the reversed_path to make it start from 'fromid' to 'toid'
             Distance total_distance = 0;
             for (auto it = reversed_path.rbegin(); it != reversed_path.rend(); ++it) {
-                if (path.empty() || (path.back().first.x != it->first.x || path.back().first.y != it->first.y)) {
-                    path.emplace_back(it->first, total_distance);
-                    total_distance += it->second;
-                }
+                path.push_back({ it->first, total_distance });
+                total_distance += it->second;
             }
 
-            return path; // Return immediately upon finding a path
+            return path;
         }
 
+        // Explore all connected bites from the current bite
         for (const auto& next_bite : get_next_bites_from(current)) {
-            if (visited.find(next_bite) == visited.end()) { // Check if not visited
-                visited.insert(next_bite);
+            if (came_from.find(next_bite) == came_from.end()) { // Unvisited bite
                 came_from[next_bite] = current;
                 to_visit.push(next_bite);
             }
         }
     }
 
+    // If no path is found, return an empty vector
     return {};
 }
 

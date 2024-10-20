@@ -226,7 +226,7 @@ private:
 
     Distance manhattan_distance(const Coord& coord1, const Coord& coord2);
     std::unordered_map<ConnectionID, Connection> connection_map;
-
+    std::unordered_map<BiteID, std::vector<ConnectionID>> bite_connections;
 };
 
 #endif // DATASTRUCTURES_HH
