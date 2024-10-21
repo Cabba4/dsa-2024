@@ -150,24 +150,24 @@ public:
 
   // Estimate of performance:
   // Short rationale for estimate:
-  std::vector<std::pair<Coord, Distance>> path_any(BiteID /*fromid*/, BiteID /*toid*/);
+  std::vector<std::pair<Coord, Distance>> path_any(BiteID fromid, BiteID toid);
 
   // Non-compulsory operations
 
   // Estimate of performance:
   // Short rationale for estimate:
-  std::vector<std::pair<Coord, Distance>> path_shortest(BiteID /*fromid*/,
-                                                        BiteID /*toid*/);
+  std::vector<std::pair<Coord, Distance>> path_shortest(BiteID fromid,
+                                                        BiteID toid);
 
   // Estimate of performance:
   // Short rationale for estimate:
-  std::vector<std::pair<Coord, Distance>> path_least_bites(BiteID /*fromid*/,
-                                                           BiteID /*toid*/);
+  std::vector<std::pair<Coord, Distance>> path_least_bites(BiteID fromid,
+                                                           BiteID toid);
 
   // Estimate of performance:
   // Short rationale for estimate:
-  std::vector<std::pair<Coord, Distance>> path_least_uphill(BiteID /*fromid*/,
-                                                            BiteID /*toid*/);
+  std::vector<std::pair<Coord, Distance>> path_least_uphill(BiteID fromid,
+                                                            BiteID toid);
 
 
 

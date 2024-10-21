@@ -768,24 +768,305 @@ std::vector<std::pair<Coord, Distance>> Datastructures::path_any(BiteID fromid, 
     // If no path is found, return an empty vector
     return {};
 }
+
 //--------------------------------
 
-// Non-compulsory operations
-std::vector<std::pair<Coord, Distance>> Datastructures::path_shortest(BiteID /*fromid*/,
-                                                                      BiteID /*toid*/)
+std::vector<std::pair<Coord, Distance>> Datastructures::path_shortest(BiteID fromid, BiteID toid)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("path_shortest");
+    // Check if the start and end bites exist in the bites_ map
+    auto from_it = id_map.find(fromid);
+    auto to_it = id_map.find(toid);
+
+    // Return {NO_COORD, NO_DISTANCE} if either bite does not exist
+    if (from_it == id_map.end() || to_it == id_map.end()) {
+        return { { NO_COORD, NO_DISTANCE } };
+    }
+
+    // If the starting and ending bites are the same, return an empty vector
+    if (fromid == toid) {
+        return {};
+    }
+
+    // Priority queue to store the bites with distances
+    std::priority_queue<std::pair<Distance, BiteID>, std::vector<std::pair<Distance, BiteID>>, std::greater<>> to_visit;
+    std::unordered_map<BiteID, Distance> distances;  // Stores the shortest known distance to each bite
+    std::unordered_map<BiteID, BiteID> came_from;    // To track the path
+
+    to_visit.push({ 0, fromid });
+    distances[fromid] = 0;
+    came_from[fromid] = NO_BITE;  // Mark the start point
+
+    while (!to_visit.empty()) {
+        auto [current_distance, current] = to_visit.top();
+        to_visit.pop();
+
+        // If we reached the destination, build the path
+        if (current == toid) {
+            std::vector<std::pair<Coord, Distance>> path;
+            BiteID step = toid;
+            Coord prev_coord = to_it->second.xy;  // Start at the destination bite
+            std::vector<std::pair<Coord, Distance>> reversed_path;
+            reversed_path.emplace_back(prev_coord, 0);
+
+            while (step != fromid) {
+                BiteID previous_bite_id = came_from[step];
+                std::vector<ConnectionID> connections = get_connections(step, previous_bite_id);
+                if (connections.empty()) {
+                    return {}; // No valid connection found, return an empty path
+                }
+
+                auto connection_it = connection_map.find(connections[0]);
+                if (connection_it == connection_map.end()) {
+                    return {}; // Connection not found, return an empty path
+                }
+                auto& connection = connection_it->second;
+                const std::vector<Coord>& intermediate_coords = connection.coords;
+                bool reverse_intermediates = (connection.bite1 != step);
+
+                if (reverse_intermediates) {
+                    for (auto it = intermediate_coords.rbegin(); it != intermediate_coords.rend(); ++it) {
+                        Distance dist = manhattan_distance(prev_coord, *it);
+                        reversed_path.emplace_back(*it, dist);
+                        prev_coord = *it;
+                    }
+                } else {
+                    for (const auto& coord : intermediate_coords) {
+                        Distance dist = manhattan_distance(prev_coord, coord);
+                        reversed_path.emplace_back(coord, dist);
+                        prev_coord = coord;
+                    }
+                }
+
+                Coord previous_coord = get_bite_coord(previous_bite_id);
+                Distance dist = manhattan_distance(prev_coord, previous_coord);
+                reversed_path.emplace_back(previous_coord, dist);
+
+                step = previous_bite_id;
+                prev_coord = previous_coord;
+            }
+
+            Distance total_distance = 0;
+            for (auto it = reversed_path.rbegin(); it != reversed_path.rend(); ++it) {
+                path.push_back({ it->first, total_distance });
+                total_distance += it->second;
+            }
+
+            return path;
+        }
+
+        for (const auto& next_bite : get_next_bites_from(current)) {
+            Distance new_distance = current_distance + manhattan_distance(get_bite_coord(current), get_bite_coord(next_bite));
+
+            if (distances.find(next_bite) == distances.end() || new_distance < distances[next_bite]) {
+                distances[next_bite] = new_distance;
+                to_visit.push({ new_distance, next_bite });
+                came_from[next_bite] = current;
+            }
+        }
+    }
+
+    // If no path is found, return an empty vector
+    return {};
 }
-std::vector<std::pair<Coord, Distance>> Datastructures::path_least_bites(BiteID /*fromid*/,
-                                                                         BiteID /*toid*/)
+
+
+std::vector<std::pair<Coord, Distance>> Datastructures::path_least_bites(BiteID fromid, BiteID toid)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("path_least_bites");
+    // Check if the start and end bites exist in the bites_ map
+    auto from_it = id_map.find(fromid);
+    auto to_it = id_map.find(toid);
+
+    // Return {NO_COORD, NO_DISTANCE} if either bite does not exist
+    if (from_it == id_map.end() || to_it == id_map.end()) {
+        return { { NO_COORD, NO_DISTANCE } };
+    }
+
+    // If the starting and ending bites are the same, return an empty vector
+    if (fromid == toid) {
+        return {};
+    }
+
+    // BFS setup
+    std::queue<BiteID> to_visit;
+    std::unordered_map<BiteID, BiteID> came_from;  // To track the path
+
+    to_visit.push(fromid);
+    came_from[fromid] = NO_BITE;
+
+    while (!to_visit.empty()) {
+        BiteID current = to_visit.front();
+        to_visit.pop();
+
+        // If we reached the destination, build the path
+        if (current == toid) {
+            std::vector<std::pair<Coord, Distance>> path;
+            BiteID step = toid;
+            Coord prev_coord = to_it->second.xy;  // Start at the destination bite
+            std::vector<std::pair<Coord, Distance>> reversed_path;
+            reversed_path.emplace_back(prev_coord, 0);
+
+            while (step != fromid) {
+                BiteID previous_bite_id = came_from[step];
+                std::vector<ConnectionID> connections = get_connections(step, previous_bite_id);
+                if (connections.empty()) {
+                    return {}; // No valid connection found, return an empty path
+                }
+
+                auto connection_it = connection_map.find(connections[0]);
+                if (connection_it == connection_map.end()) {
+                    return {}; // Connection not found, return an empty path
+                }
+                auto& connection = connection_it->second;
+                const std::vector<Coord>& intermediate_coords = connection.coords;
+                bool reverse_intermediates = (connection.bite1 != step);
+
+                if (reverse_intermediates) {
+                    for (auto it = intermediate_coords.rbegin(); it != intermediate_coords.rend(); ++it) {
+                        Distance dist = manhattan_distance(prev_coord, *it);
+                        reversed_path.emplace_back(*it, dist);
+                        prev_coord = *it;
+                    }
+                } else {
+                    for (const auto& coord : intermediate_coords) {
+                        Distance dist = manhattan_distance(prev_coord, coord);
+                        reversed_path.emplace_back(coord, dist);
+                        prev_coord = coord;
+                    }
+                }
+
+                Coord previous_coord = get_bite_coord(previous_bite_id);
+                Distance dist = manhattan_distance(prev_coord, previous_coord);
+                reversed_path.emplace_back(previous_coord, dist);
+
+                step = previous_bite_id;
+                prev_coord = previous_coord;
+            }
+
+            Distance total_distance = 0;
+            for (auto it = reversed_path.rbegin(); it != reversed_path.rend(); ++it) {
+                path.push_back({ it->first, total_distance });
+                total_distance += it->second;
+            }
+
+            return path;
+        }
+
+        // Explore all connected bites from the current bite
+        for (const auto& next_bite : get_next_bites_from(current)) {
+            if (came_from.find(next_bite) == came_from.end()) {  // Unvisited bite
+                came_from[next_bite] = current;
+                to_visit.push(next_bite);
+            }
+        }
+    }
+
+    // If no path is found, return an empty vector
+    return {};
 }
-std::vector<std::pair<Coord, Distance>> Datastructures::path_least_uphill(BiteID /*fromid*/,
-                                                                          BiteID /*toid*/)
+
+
+std::vector<std::pair<Coord, Distance>> Datastructures::path_least_uphill(BiteID fromid, BiteID toid)
 {
-  // Replace the line below with your implementation
-  throw NotImplemented("path_least_uphill");
+    // Check if the start and end bites exist in the id_map
+    auto from_it = id_map.find(fromid);
+    auto to_it = id_map.find(toid);
+
+    // Return {NO_COORD, NO_DISTANCE} if either bite does not exist
+    if (from_it == id_map.end() || to_it == id_map.end()) {
+        return { { NO_COORD, NO_DISTANCE } };
+    }
+
+    // If the starting and ending bites are the same, return an empty vector
+    if (fromid == toid) {
+        return {};
+    }
+
+    // Dijkstra's setup: priority_queue for uphill distance, came_from to track paths
+    std::priority_queue<std::pair<ContourHeight, BiteID>, std::vector<std::pair<ContourHeight, BiteID>>, std::greater<>> to_visit;
+    std::unordered_map<BiteID, BiteID> came_from;  // To track the path
+    std::unordered_map<BiteID, ContourHeight> uphill_cost; // To track uphill height cost
+
+    to_visit.emplace(0, fromid);
+    came_from[fromid] = NO_BITE;
+    uphill_cost[fromid] = 0;
+
+    while (!to_visit.empty()) {
+        auto [current_uphill, current_bite] = to_visit.top();
+        to_visit.pop();
+
+        // If we reached the destination, build the path
+        if (current_bite == toid) {
+            std::vector<std::pair<Coord, Distance>> path;
+            BiteID step = toid;
+            Coord prev_coord = to_it->second.xy;  // Start at the destination bite
+            std::vector<std::pair<Coord, Distance>> reversed_path;
+            reversed_path.emplace_back(prev_coord, 0);
+
+            while (step != fromid) {
+                BiteID previous_bite_id = came_from[step];
+                std::vector<ConnectionID> connections = get_connections(step, previous_bite_id);
+                if (connections.empty()) {
+                    return {}; // No valid connection found, return an empty path
+                }
+
+                auto connection_it = connection_map.find(connections[0]);
+                if (connection_it == connection_map.end()) {
+                    return {}; // Connection not found, return an empty path
+                }
+                auto& connection = connection_it->second;
+                const std::vector<Coord>& intermediate_coords = connection.coords;
+                bool reverse_intermediates = (connection.bite1 != step);
+
+                if (reverse_intermediates) {
+                    for (auto it = intermediate_coords.rbegin(); it != intermediate_coords.rend(); ++it) {
+                        Distance dist = manhattan_distance(prev_coord, *it);
+                        reversed_path.emplace_back(*it, dist);
+                        prev_coord = *it;
+                    }
+                } else {
+                    for (const auto& coord : intermediate_coords) {
+                        Distance dist = manhattan_distance(prev_coord, coord);
+                        reversed_path.emplace_back(coord, dist);
+                        prev_coord = coord;
+                    }
+                }
+
+                Coord previous_coord = get_bite_coord(previous_bite_id);
+                Distance dist = manhattan_distance(prev_coord, previous_coord);
+                reversed_path.emplace_back(previous_coord, dist);
+
+                step = previous_bite_id;
+                prev_coord = previous_coord;
+            }
+
+            Distance total_distance = 0;
+            for (auto it = reversed_path.rbegin(); it != reversed_path.rend(); ++it) {
+                path.push_back({ it->first, total_distance });
+                total_distance += it->second;
+            }
+
+            return path;
+        }
+
+        // Explore all connected bites from the current bite
+        for (const auto& next_bite : get_next_bites_from(current_bite)) {
+            const auto& next_bite_info = id_map[next_bite];
+            ContourHeight current_height = id_map[current_bite].contour_id;
+            ContourHeight next_height = next_bite_info.contour_id;
+
+            ContourHeight uphill_diff = next_height > current_height ? (next_height - current_height) : 0;
+            ContourHeight new_uphill_cost = current_uphill + uphill_diff;
+
+            // If it's a better uphill path, add to the priority queue
+            if (uphill_cost.find(next_bite) == uphill_cost.end() || new_uphill_cost < uphill_cost[next_bite]) {
+                uphill_cost[next_bite] = new_uphill_cost;
+                to_visit.emplace(new_uphill_cost, next_bite);
+                came_from[next_bite] = current_bite;
+            }
+        }
+    }
+
+    // If no path is found, return an empty vector
+    return {};
 }
+
