@@ -1,0 +1,2 @@
+testread "functionality-compulsory/test-01-get_bites_alphabetically-in.txt" "functionality-compulsory/test-01-get_bites_alphabetically-out.txt"
+testread "functionality-compulsory/test-02-bites_by_distance_increasing-in.txt" "functionality-compulsory/test-02-bites_by_distance_increasing-out.txt"
